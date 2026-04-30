@@ -71,6 +71,11 @@ If you have any feedback or suggestions for Discord Relay, file a bug report or 
 
 ## Changes
 
+### 2.6.1
+
+- Fix bug where specifying an inclusion filter would not work.
+- Fix shadowbanned check due to Devvit change.
+
 ### 2.5.0
 
 - Added the ability to introduce a delay before relaying comments and/or posts to Discord after approval.

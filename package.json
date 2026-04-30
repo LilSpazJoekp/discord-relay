@@ -15,12 +15,12 @@
     "publish-prerelease": "npm run bump-prerelease && devvit publish --public"
   },
   "dependencies": {
-    "@devvit/protos": "0.11.18",
-    "@devvit/public-api": "0.11.18",
-    "devvit": "0.11.18"
+    "@devvit/protos": "0.12.21",
+    "@devvit/public-api": "0.12.21",
+    "devvit": "0.12.21"
   },
   "devDependencies": {
-    "@devvit/tsconfig": "0.11.18",
+    "@devvit/tsconfig": "0.12.21",
     "typescript": "5.8.3"
   }
 }

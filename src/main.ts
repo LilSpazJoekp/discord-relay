@@ -41,7 +41,7 @@ function isRemoved(target: Comment | Post) {
 
 async function isShadowBanned(context: TriggerContext, target: Comment | Post) {
     return !(
-        await target.getAuthor()
+        await context.reddit.getUserById(target.authorId || "")
     );
 }
 
@@ -564,9 +564,9 @@ async function shouldRelay(event: any, context: TriggerContext): Promise<boolean
 
     const flairMap = new Map<string, string>();
 
-    const ignoreFlair: string = await settings.get("ignore-user-flair") || "";
+    const ignoreUserFlair: string = await settings.get("ignore-user-flair") || "";
     const userFlair: string = await settings.get("user-flair") || "";
-    if (ignoreFlair || userFlair) {
+    if (ignoreUserFlair || userFlair) {
         const userFlairs = (
             await subreddit.getUserFlairTemplates()
         );
@@ -626,15 +626,15 @@ async function shouldRelay(event: any, context: TriggerContext): Promise<boolean
                 return false;
             }
         }
-        if (ignoreFlair) {
+        if (ignoreUserFlair) {
             let shouldRelayUserFlair: boolean;
-            const ignoreFlairs = ignoreFlair.toLowerCase()
+            const ignoreUserFlairs = ignoreUserFlair.toLowerCase()
                 .split(",")
                 .map(flair => flair.trim())
                 .filter(flair => flair.length > 0);
             shouldRelayUserFlair = !(
-                ignoreFlairs.includes(event.author.flair.text.toLowerCase())
-                || ignoreFlairs.includes(flairMap.get(event.author.flair.templateId) || "")
+                ignoreUserFlairs.includes(event.author.flair.text.toLowerCase())
+                || ignoreUserFlairs.includes(flairMap.get(event.author.flair.templateId) || "")
             );
             if (!shouldRelayUserFlair) {
                 console.log(`Should relay event (shouldRelayUserFlair): ${shouldRelayUserFlair}`);
@@ -685,11 +685,10 @@ async function shouldRelay(event: any, context: TriggerContext): Promise<boolean
                 .split(",")
                 .map(flair => flair.trim())
                 .filter(flair => flair.length > 0);
-            if (item instanceof Post) {
-                shouldRelay = postFlairs.includes(item.flair && item.flair.text
-                    ? item.flair.text.toLowerCase() : "") || postFlairs.includes(flairMap.get(item.flair?.templateId
+            shouldRelay = postFlairs.includes(event.post.linkFlair.text
+                    ? event.post.linkFlair.text.toLowerCase() : "")
+                || postFlairs.includes(flairMap.get(event.post.linkFlair?.templateId
                     || "") || "");
-            }
             checks.push(shouldRelay);
         }
         if (relayMode[0] === "front-page") {
