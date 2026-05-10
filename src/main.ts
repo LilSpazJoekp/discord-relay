@@ -444,15 +444,28 @@ async function relay(
     webhookUrl: string,
     data: { allowed_mentions: { parse: string[] }; content: string },
 ) {
-    const response = await fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-    });
-    console.log(`Webhook response: ${response.status} ${await response.text()}`);
-    await context.redis.hSet(item.id, {relayed: "true"});
+    // Atomically claim "relayed" before firing the webhook to prevent
+    // duplicate relays in case multiple events are fired for the same item.
+    const claimed = await context.redis.hSetNX(item.id, "relayed", "true");
+    if (claimed === 0) {
+        console.log(`Skipping duplicate relay for ${item.id}: already relayed or being relayed by another worker`);
+        return;
+    }
+    try {
+        const response = await fetch(webhookUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        });
+        console.log(`Webhook response: ${response.status} ${await response.text()}`);
+    } catch (err) {
+        // Webhook fetch failed (e.g. network error). Roll back the claim so
+        // that the retry-on-approval path can attempt again.
+        await context.redis.hDel(item.id, ["relayed"]);
+        throw err;
+    }
 }
 
 async function scheduleRelay(context: TriggerContext, item: Comment | Post, approvalRetry: boolean) {
