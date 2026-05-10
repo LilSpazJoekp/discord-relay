@@ -71,6 +71,10 @@ If you have any feedback or suggestions for Discord Relay, file a bug report or 
 
 ## Changes
 
+## 2.6.2
+
+- Fix bug where duplicate events were being relayed.
+
 ### 2.6.1
 
 - Fix bug where specifying an inclusion filter would not work.
