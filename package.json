@@ -1,10 +1,15 @@
 {
   "private": true,
-  "name": "discord-relay",
+  "name": "praw_devvit_test",
   "version": "2.1.1.0",
   "license": "BSD-3-Clause",
   "type": "module",
   "scripts": {
+    "build": "npm run build:server",
+    "build:server": "esbuild src/server/index.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/server/index.cjs",
+    "test": "vitest run",
+    "watch:server": "npm run build:server -- --watch",
+    "playtest": "devvit playtest",
     "bump-major": "devvit upload --bump major",
     "bump-minor": "devvit upload --bump minor",
     "bump-patch": "devvit upload --bump patch",
@@ -15,12 +20,15 @@
     "publish-prerelease": "npm run bump-prerelease && devvit publish --public"
   },
   "dependencies": {
-    "@devvit/protos": "0.12.21",
-    "@devvit/public-api": "0.12.21",
-    "devvit": "0.12.21"
+    "@devvit/web": "0.13.3",
+    "@hono/node-server": "^2.0.5",
+    "devvit": "0.13.3",
+    "hono": "^4.12.25"
   },
   "devDependencies": {
-    "@devvit/tsconfig": "0.12.21",
-    "typescript": "5.8.3"
+    "@devvit/tsconfig": "0.13.3",
+    "esbuild": "0.25.9",
+    "typescript": "5.8.3",
+    "vitest": "^4.1.9"
   }
 }
