@@ -22,13 +22,13 @@
     "publish-prerelease": "npm run bump-prerelease && devvit publish --public"
   },
   "dependencies": {
-    "@devvit/web": "0.14.1",
+    "@devvit/web": "0.14.3",
     "@hono/node-server": "^2.0.5",
-    "devvit": "0.14.1",
+    "devvit": "0.14.3",
     "hono": "^4.12.25"
   },
   "devDependencies": {
-    "@devvit/tsconfig": "0.14.1",
+    "@devvit/tsconfig": "0.14.3",
     "@vitest/coverage-v8": "^4.1.9",
     "esbuild": "0.25.9",
     "typescript": "5.8.3",
