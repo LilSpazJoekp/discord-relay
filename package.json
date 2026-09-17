@@ -31,7 +31,7 @@
     "@devvit/tsconfig": "0.14.1",
     "@vitest/coverage-v8": "^4.1.9",
     "esbuild": "0.25.9",
-    "typescript": "5.8.3",
+    "typescript": "7.0.2",
     "vitest": "^4.1.9"
   }
 }
