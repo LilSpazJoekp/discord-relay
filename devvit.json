@@ -1,0 +1,1205 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "discord-relay",
+  "marketingAssets": {
+    "icon": "assets/discord-relay.png"
+  },
+  "sourceIgnores": [
+    ".codex",
+    ".github",
+    ".idea"
+  ],
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs"
+  },
+  "scripts": {
+    "build": "npm run build:server",
+    "dev": "npm run watch:server"
+  },
+  "permissions": {
+    "http": {
+      "enable": true,
+      "domains": [
+        "discord.com",
+        "discordapp.com",
+        "hooks.slack.com"
+      ]
+    },
+    "reddit": {
+      "enable": true,
+      "scope": "moderator"
+    },
+    "redis": true
+  },
+  "settings": {
+    "subreddit": {
+      "webhook-destinations": {
+        "type": "group",
+        "label": "Webhook Destinations",
+        "helpText": "Configure Discord or Slack webhooks and choose which events each destination receives.",
+        "fields": {
+          "destination-1": {
+            "type": "group",
+            "label": "Destination 1",
+            "fields": {
+              "destination-1-enabled": {
+                "type": "boolean",
+                "label": "Enabled",
+                "defaultValue": true
+              },
+              "destination-1-url": {
+                "type": "string",
+                "label": "Webhook URL",
+                "helpText": "Optional Discord or Slack webhook URL.",
+                "validationEndpoint": "/internal/settings/validate-webhook-url"
+              },
+              "destination-1-events": {
+                "type": "multiSelect",
+                "label": "Event Types",
+                "defaultValue": [
+                  "all"
+                ],
+                "options": [
+                  {
+                    "label": "All",
+                    "value": "all"
+                  },
+                  {
+                    "label": "Posts",
+                    "value": "post"
+                  },
+                  {
+                    "label": "Comments",
+                    "value": "comment"
+                  },
+                  {
+                    "label": "Modlog",
+                    "value": "modlog"
+                  },
+                  {
+                    "label": "Modmail",
+                    "value": "modmail"
+                  },
+                  {
+                    "label": "Modqueue",
+                    "value": "modqueue"
+                  },
+                  {
+                    "label": "Reported",
+                    "value": "reported"
+                  },
+                  {
+                    "label": "Unmoderated",
+                    "value": "unmoderated"
+                  }
+                ]
+              }
+            }
+          },
+          "destination-2": {
+            "type": "group",
+            "label": "Destination 2",
+            "fields": {
+              "destination-2-enabled": {
+                "type": "boolean",
+                "label": "Enabled",
+                "defaultValue": true
+              },
+              "destination-2-url": {
+                "type": "string",
+                "label": "Webhook URL",
+                "helpText": "Optional Discord or Slack webhook URL.",
+                "validationEndpoint": "/internal/settings/validate-webhook-url"
+              },
+              "destination-2-events": {
+                "type": "multiSelect",
+                "label": "Event Types",
+                "options": [
+                  {
+                    "label": "All",
+                    "value": "all"
+                  },
+                  {
+                    "label": "Posts",
+                    "value": "post"
+                  },
+                  {
+                    "label": "Comments",
+                    "value": "comment"
+                  },
+                  {
+                    "label": "Modlog",
+                    "value": "modlog"
+                  },
+                  {
+                    "label": "Modmail",
+                    "value": "modmail"
+                  },
+                  {
+                    "label": "Modqueue",
+                    "value": "modqueue"
+                  },
+                  {
+                    "label": "Reported",
+                    "value": "reported"
+                  },
+                  {
+                    "label": "Unmoderated",
+                    "value": "unmoderated"
+                  }
+                ]
+              }
+            }
+          },
+          "destination-3": {
+            "type": "group",
+            "label": "Destination 3",
+            "fields": {
+              "destination-3-enabled": {
+                "type": "boolean",
+                "label": "Enabled",
+                "defaultValue": true
+              },
+              "destination-3-url": {
+                "type": "string",
+                "label": "Webhook URL",
+                "helpText": "Optional Discord or Slack webhook URL.",
+                "validationEndpoint": "/internal/settings/validate-webhook-url"
+              },
+              "destination-3-events": {
+                "type": "multiSelect",
+                "label": "Event Types",
+                "options": [
+                  {
+                    "label": "All",
+                    "value": "all"
+                  },
+                  {
+                    "label": "Posts",
+                    "value": "post"
+                  },
+                  {
+                    "label": "Comments",
+                    "value": "comment"
+                  },
+                  {
+                    "label": "Modlog",
+                    "value": "modlog"
+                  },
+                  {
+                    "label": "Modmail",
+                    "value": "modmail"
+                  },
+                  {
+                    "label": "Modqueue",
+                    "value": "modqueue"
+                  },
+                  {
+                    "label": "Reported",
+                    "value": "reported"
+                  },
+                  {
+                    "label": "Unmoderated",
+                    "value": "unmoderated"
+                  }
+                ]
+              }
+            }
+          },
+          "destination-4": {
+            "type": "group",
+            "label": "Destination 4",
+            "fields": {
+              "destination-4-enabled": {
+                "type": "boolean",
+                "label": "Enabled",
+                "defaultValue": true
+              },
+              "destination-4-url": {
+                "type": "string",
+                "label": "Webhook URL",
+                "helpText": "Optional Discord or Slack webhook URL.",
+                "validationEndpoint": "/internal/settings/validate-webhook-url"
+              },
+              "destination-4-events": {
+                "type": "multiSelect",
+                "label": "Event Types",
+                "options": [
+                  {
+                    "label": "All",
+                    "value": "all"
+                  },
+                  {
+                    "label": "Posts",
+                    "value": "post"
+                  },
+                  {
+                    "label": "Comments",
+                    "value": "comment"
+                  },
+                  {
+                    "label": "Modlog",
+                    "value": "modlog"
+                  },
+                  {
+                    "label": "Modmail",
+                    "value": "modmail"
+                  },
+                  {
+                    "label": "Modqueue",
+                    "value": "modqueue"
+                  },
+                  {
+                    "label": "Reported",
+                    "value": "reported"
+                  },
+                  {
+                    "label": "Unmoderated",
+                    "value": "unmoderated"
+                  }
+                ]
+              }
+            }
+          },
+          "destination-5": {
+            "type": "group",
+            "label": "Destination 5",
+            "fields": {
+              "destination-5-enabled": {
+                "type": "boolean",
+                "label": "Enabled",
+                "defaultValue": true
+              },
+              "destination-5-url": {
+                "type": "string",
+                "label": "Webhook URL",
+                "helpText": "Optional Discord or Slack webhook URL.",
+                "validationEndpoint": "/internal/settings/validate-webhook-url"
+              },
+              "destination-5-events": {
+                "type": "multiSelect",
+                "label": "Event Types",
+                "options": [
+                  {
+                    "label": "All",
+                    "value": "all"
+                  },
+                  {
+                    "label": "Posts",
+                    "value": "post"
+                  },
+                  {
+                    "label": "Comments",
+                    "value": "comment"
+                  },
+                  {
+                    "label": "Modlog",
+                    "value": "modlog"
+                  },
+                  {
+                    "label": "Modmail",
+                    "value": "modmail"
+                  },
+                  {
+                    "label": "Modqueue",
+                    "value": "modqueue"
+                  },
+                  {
+                    "label": "Reported",
+                    "value": "reported"
+                  },
+                  {
+                    "label": "Unmoderated",
+                    "value": "unmoderated"
+                  }
+                ]
+              }
+            }
+          },
+          "destination-6": {
+            "type": "group",
+            "label": "Destination 6",
+            "fields": {
+              "destination-6-enabled": {
+                "type": "boolean",
+                "label": "Enabled",
+                "defaultValue": true
+              },
+              "destination-6-url": {
+                "type": "string",
+                "label": "Webhook URL",
+                "helpText": "Optional Discord or Slack webhook URL.",
+                "validationEndpoint": "/internal/settings/validate-webhook-url"
+              },
+              "destination-6-events": {
+                "type": "multiSelect",
+                "label": "Event Types",
+                "options": [
+                  {
+                    "label": "All",
+                    "value": "all"
+                  },
+                  {
+                    "label": "Posts",
+                    "value": "post"
+                  },
+                  {
+                    "label": "Comments",
+                    "value": "comment"
+                  },
+                  {
+                    "label": "Modlog",
+                    "value": "modlog"
+                  },
+                  {
+                    "label": "Modmail",
+                    "value": "modmail"
+                  },
+                  {
+                    "label": "Modqueue",
+                    "value": "modqueue"
+                  },
+                  {
+                    "label": "Reported",
+                    "value": "reported"
+                  },
+                  {
+                    "label": "Unmoderated",
+                    "value": "unmoderated"
+                  }
+                ]
+              }
+            }
+          },
+          "legacy-unmoderated-destination": {
+            "type": "group",
+            "label": "Legacy Unmoderated Destination",
+            "helpText": "Fallback for unmoderated items when no enabled numbered destination matches the item.",
+            "fields": {
+              "webhook-url": {
+                "type": "string",
+                "label": "Webhook URL",
+                "helpText": "Optional backward-compatible fallback for unmoderated forwarding when no destination is configured.",
+                "validationEndpoint": "/internal/settings/validate-webhook-url"
+              }
+            }
+          }
+        }
+      },
+      "unmoderated-relay": {
+        "type": "group",
+        "label": "Unmoderated Relay",
+        "helpText": "Control how unmoderated posts and comments are selected and relayed.",
+        "fields": {
+          "relay-behavior": {
+            "type": "group",
+            "label": "Relay Behavior",
+            "helpText": "Relay eligible content immediately or scan top posts once per minute. Front Page mode does not relay comments.",
+            "fields": {
+              "unmoderated-enabled": {
+                "type": "boolean",
+                "label": "Enabled",
+                "defaultValue": true
+              },
+              "relay-mode": {
+                "type": "select",
+                "label": "Relay Mode",
+                "helpText": "Choose when to relay unmoderated posts and comments.",
+                "defaultValue": "immediately",
+                "options": [
+                  {
+                    "label": "Immediately",
+                    "value": "immediately"
+                  },
+                  {
+                    "label": "Front Page",
+                    "value": "front-page"
+                  }
+                ]
+              },
+              "front-page-time-frame": {
+                "type": "select",
+                "label": "Front Page Time Frame",
+                "helpText": "Choose the time frame for front page relay mode.",
+                "defaultValue": "hour",
+                "options": [
+                  {
+                    "label": "Hour",
+                    "value": "hour"
+                  },
+                  {
+                    "label": "Day",
+                    "value": "day"
+                  },
+                  {
+                    "label": "Week",
+                    "value": "week"
+                  },
+                  {
+                    "label": "Month",
+                    "value": "month"
+                  },
+                  {
+                    "label": "Year",
+                    "value": "year"
+                  },
+                  {
+                    "label": "All",
+                    "value": "all"
+                  }
+                ]
+              }
+            }
+          },
+          "discord-role-ping": {
+            "type": "group",
+            "label": "Discord Role Ping",
+            "helpText": "Applies only to Discord destinations; enter the numeric role ID to mention it in unmoderated relays.",
+            "fields": {
+              "ping-role": {
+                "type": "boolean",
+                "label": "Ping Discord Role",
+                "defaultValue": false
+              },
+              "ping-role-id": {
+                "type": "string",
+                "label": "Discord Role ID"
+              }
+            }
+          },
+          "included-content": {
+            "type": "group",
+            "label": "Included Content",
+            "helpText": "Content Type and Only Approved Authors must pass. If username, flair text, or flair template ID filters are configured, matching any one includes the item.",
+            "fields": {
+              "content-type": {
+                "type": "select",
+                "label": "Content Type",
+                "defaultValue": "post",
+                "options": [
+                  {
+                    "label": "All",
+                    "value": "all"
+                  },
+                  {
+                    "label": "Posts Only",
+                    "value": "post"
+                  },
+                  {
+                    "label": "Comments Only",
+                    "value": "comment"
+                  }
+                ]
+              },
+              "specific-username": {
+                "type": "string",
+                "label": "Username(s)/Moderators Only",
+                "helpText": "Username without u/ or m for all moderators. Separate multiple values with commas."
+              },
+              "user-flair": {
+                "type": "string",
+                "label": "User Flair Text"
+              },
+              "user-flair-template-id": {
+                "type": "string",
+                "label": "User Flair Template ID",
+                "helpText": "Comma-separated user flair template IDs; each value is matched exactly."
+              },
+              "post-flair": {
+                "type": "string",
+                "label": "Post Flair Text"
+              },
+              "post-flair-template-id": {
+                "type": "string",
+                "label": "Post Flair Template ID",
+                "helpText": "Comma-separated post flair template IDs; each value is matched exactly. Applies only to posts."
+              },
+              "only-approved-users": {
+                "type": "boolean",
+                "label": "Only Approved Authors",
+                "defaultValue": false
+              }
+            }
+          },
+          "excluded-content": {
+            "type": "group",
+            "label": "Excluded Content",
+            "helpText": "Matching any username, flair text, flair template ID, or author-status exclusion skips the item, even when an inclusion filter matches.",
+            "fields": {
+              "ignore-specific-username": {
+                "type": "string",
+                "label": "Ignore Username(s)/Moderators"
+              },
+              "ignore-user-flair": {
+                "type": "string",
+                "label": "Ignore User Flair Text"
+              },
+              "ignore-user-flair-template-id": {
+                "type": "string",
+                "label": "Ignore User Flair Template ID",
+                "helpText": "Comma-separated user flair template IDs to exclude; each value is matched exactly."
+              },
+              "ignore-post-flair": {
+                "type": "string",
+                "label": "Ignore Post Flair Text"
+              },
+              "ignore-post-flair-template-id": {
+                "type": "string",
+                "label": "Ignore Post Flair Template ID",
+                "helpText": "Comma-separated post flair template IDs to exclude; each value is matched exactly. Applies only to posts."
+              },
+              "ignore-shadowbanned": {
+                "type": "boolean",
+                "label": "Ignore Shadowbanned or Deleted Authors",
+                "defaultValue": false
+              }
+            }
+          },
+          "timing-and-approval": {
+            "type": "group",
+            "label": "Timing and Approval",
+            "helpText": "A delay of 0 is disabled; other delays must be at least 3 minutes. Approval delays apply to retries, and the score threshold applies to Front Page posts.",
+            "fields": {
+              "comment-delay": {
+                "type": "number",
+                "label": "Comment Delay Minutes",
+                "defaultValue": 0,
+                "validationEndpoint": "/internal/settings/validate-delay"
+              },
+              "post-delay": {
+                "type": "number",
+                "label": "Post Delay Minutes",
+                "defaultValue": 0,
+                "validationEndpoint": "/internal/settings/validate-delay"
+              },
+              "ignore-removed": {
+                "type": "boolean",
+                "label": "Ignore Removed Items",
+                "defaultValue": false
+              },
+              "retry-on-approval": {
+                "type": "boolean",
+                "label": "Retry On Approval",
+                "defaultValue": false
+              },
+              "comment-delay-after-approval": {
+                "type": "number",
+                "label": "Comment Delay After Approval Minutes",
+                "defaultValue": 0,
+                "validationEndpoint": "/internal/settings/validate-delay"
+              },
+              "post-delay-after-approval": {
+                "type": "number",
+                "label": "Post Delay After Approval Minutes",
+                "defaultValue": 0,
+                "validationEndpoint": "/internal/settings/validate-delay"
+              },
+              "post-score-threshold": {
+                "type": "number",
+                "label": "Post Score Threshold",
+                "defaultValue": 0
+              }
+            }
+          },
+          "safety-and-embeds": {
+            "type": "group",
+            "label": "Safety and Embeds",
+            "helpText": "Choose whether to relay from submit events instead of waiting for Reddit safety checks, and whether to suppress unmoderated item or author link previews.",
+            "fields": {
+              "skip-safety-checks": {
+                "type": "boolean",
+                "label": "Skip Reddit Safety Checks",
+                "defaultValue": false
+              },
+              "suppress-item-embed": {
+                "type": "boolean",
+                "label": "Suppress Item Embed",
+                "defaultValue": false
+              },
+              "suppress-author-embed": {
+                "type": "boolean",
+                "label": "Suppress Author Embed",
+                "defaultValue": false
+              }
+            }
+          }
+        }
+      },
+      "modmail-relay": {
+        "type": "group",
+        "label": "Modmail Relay",
+        "helpText": "Forward new conversations, non-moderator messages, or all messages.",
+        "fields": {
+          "modmail-enabled": {
+            "type": "boolean",
+            "label": "Enabled",
+            "defaultValue": false
+          },
+          "modmail-scenario": {
+            "type": "select",
+            "label": "Forward Scenario",
+            "defaultValue": "new-threads",
+            "options": [
+              {
+                "label": "Only New Threads",
+                "value": "new-threads"
+              },
+              {
+                "label": "All Non-Mod Replies",
+                "value": "non-mod-replies"
+              },
+              {
+                "label": "All Messages",
+                "value": "all-messages"
+              }
+            ]
+          }
+        }
+      },
+      "modqueue-relay": {
+        "type": "group",
+        "label": "Modqueue Relay",
+        "helpText": "Scans the full modqueue once per minute. An item must pass every configured count, age, report, and content filter.",
+        "fields": {
+          "modqueue-enabled": {
+            "type": "boolean",
+            "label": "Enabled",
+            "defaultValue": false
+          },
+          "modqueue-content-type": {
+            "type": "select",
+            "label": "Content Type",
+            "defaultValue": "all",
+            "options": [
+              {
+                "label": "All",
+                "value": "all"
+              },
+              {
+                "label": "Posts",
+                "value": "post"
+              },
+              {
+                "label": "Comments",
+                "value": "comment"
+              }
+            ]
+          },
+          "modqueue-minimum-report-count": {
+            "type": "number",
+            "label": "Minimum Report Count",
+            "defaultValue": 0
+          },
+          "modqueue-minimum-age-minutes": {
+            "type": "number",
+            "label": "Minimum Age Minutes",
+            "defaultValue": 0
+          },
+          "modqueue-maximum-age-minutes": {
+            "type": "number",
+            "label": "Maximum Age Minutes",
+            "defaultValue": 0
+          },
+          "modqueue-report-contains": {
+            "type": "string",
+            "label": "Report Contains",
+            "helpText": "Comma-separated case-insensitive keywords."
+          },
+          "modqueue-content-contains": {
+            "type": "string",
+            "label": "Post/Comment Body or Title Contains",
+            "helpText": "Comma-separated case-insensitive keywords."
+          },
+          "modqueue-only-mod-reported": {
+            "type": "boolean",
+            "label": "Only Forward Mod Reported Items",
+            "defaultValue": false
+          }
+        }
+      },
+      "reported-content-relay": {
+        "type": "group",
+        "label": "Reported Content Relay",
+        "helpText": "Forwards report events as they arrive. Report type and minimum count must pass unless a moderator report is configured to bypass the minimum.",
+        "fields": {
+          "reported-enabled": {
+            "type": "boolean",
+            "label": "Enabled",
+            "defaultValue": false
+          },
+          "reported-report-type": {
+            "type": "select",
+            "label": "Report Type",
+            "defaultValue": "all",
+            "options": [
+              {
+                "label": "All",
+                "value": "all"
+              },
+              {
+                "label": "Mod Report Only",
+                "value": "mod-only"
+              },
+              {
+                "label": "User Reports Only",
+                "value": "user-only"
+              }
+            ]
+          },
+          "reported-minimum-report-count": {
+            "type": "number",
+            "label": "Minimum Report Count",
+            "defaultValue": 0
+          },
+          "reported-mod-reports-bypass-minimum": {
+            "type": "boolean",
+            "label": "Mod Reports Bypass Minimum Count",
+            "defaultValue": false
+          }
+        }
+      },
+      "modlog-relay": {
+        "type": "group",
+        "label": "Modlog Relay",
+        "fields": {
+          "modlog-enabled": {
+            "type": "boolean",
+            "label": "Enabled",
+            "defaultValue": false
+          },
+          "modlog-actions": {
+            "type": "multiSelect",
+            "label": "Actions to Forward",
+            "defaultValue": [
+              "all"
+            ],
+            "options": [
+              {
+                "label": "All",
+                "value": "all"
+              },
+              {
+                "label": "Accept Moderator Invite",
+                "value": "acceptmoderatorinvite"
+              },
+              {
+                "label": "Add Community Topics",
+                "value": "add_community_topics"
+              },
+              {
+                "label": "Add Contributor",
+                "value": "addcontributor"
+              },
+              {
+                "label": "Add Moderator",
+                "value": "addmoderator"
+              },
+              {
+                "label": "Add Note",
+                "value": "addnote"
+              },
+              {
+                "label": "Add Removal Reason",
+                "value": "addremovalreason"
+              },
+              {
+                "label": "Adjust Post Crowd Control Level",
+                "value": "adjust_post_crowd_control_level"
+              },
+              {
+                "label": "Approve Award",
+                "value": "approve_award"
+              },
+              {
+                "label": "Approve Comment",
+                "value": "approvecomment"
+              },
+              {
+                "label": "Approve Post",
+                "value": "approvelink"
+              },
+              {
+                "label": "Ban User",
+                "value": "banuser"
+              },
+              {
+                "label": "Chat Approve Message",
+                "value": "chat_approve_message"
+              },
+              {
+                "label": "Chat Ban User",
+                "value": "chat_ban_user"
+              },
+              {
+                "label": "Chat Invite Host",
+                "value": "chat_invite_host"
+              },
+              {
+                "label": "Chat Remove Host",
+                "value": "chat_remove_host"
+              },
+              {
+                "label": "Chat Remove Message",
+                "value": "chat_remove_message"
+              },
+              {
+                "label": "Chat Unban User",
+                "value": "chat_unban_user"
+              },
+              {
+                "label": "Collections",
+                "value": "collections"
+              },
+              {
+                "label": "Community Status",
+                "value": "community_status"
+              },
+              {
+                "label": "Style Community",
+                "value": "community_styling"
+              },
+              {
+                "label": "Community Welcome Page",
+                "value": "community_welcome_page"
+              },
+              {
+                "label": "Widgets",
+                "value": "community_widgets"
+              },
+              {
+                "label": "Create Award",
+                "value": "create_award"
+              },
+              {
+                "label": "Create Scheduled Post",
+                "value": "create_scheduled_post"
+              },
+              {
+                "label": "Create Removal Reason",
+                "value": "createremovalreason"
+              },
+              {
+                "label": "Create Rule",
+                "value": "createrule"
+              },
+              {
+                "label": "Delete Award",
+                "value": "delete_award"
+              },
+              {
+                "label": "Delete Scheduled Post",
+                "value": "delete_scheduled_post"
+              },
+              {
+                "label": "Delete Note",
+                "value": "deletenote"
+              },
+              {
+                "label": "Delete Overridden Subreddit Classification",
+                "value": "deleteoverriddenclassification"
+              },
+              {
+                "label": "Delete Removal Reason",
+                "value": "deleteremovalreason"
+              },
+              {
+                "label": "Delete Rule",
+                "value": "deleterule"
+              },
+              {
+                "label": "App Changed",
+                "value": "dev_platform_app_changed"
+              },
+              {
+                "label": "App Disabled",
+                "value": "dev_platform_app_disabled"
+              },
+              {
+                "label": "App Enabled",
+                "value": "dev_platform_app_enabled"
+              },
+              {
+                "label": "App Installed",
+                "value": "dev_platform_app_installed"
+              },
+              {
+                "label": "App Uninstalled",
+                "value": "dev_platform_app_uninstalled"
+              },
+              {
+                "label": "Disable Award",
+                "value": "disable_award"
+              },
+              {
+                "label": "Disable Post Crowd Control Filtering",
+                "value": "disable_post_crowd_control_filter"
+              },
+              {
+                "label": "Distinguish",
+                "value": "distinguish"
+              },
+              {
+                "label": "Edit Comment Requirements",
+                "value": "edit_comment_requirements"
+              },
+              {
+                "label": "Edit Post Requirements",
+                "value": "edit_post_requirements"
+              },
+              {
+                "label": "Edit Saved Response",
+                "value": "edit_saved_response"
+              },
+              {
+                "label": "Edit Scheduled Post",
+                "value": "edit_scheduled_post"
+              },
+              {
+                "label": "Edit Flair",
+                "value": "editflair"
+              },
+              {
+                "label": "Edit Rule",
+                "value": "editrule"
+              },
+              {
+                "label": "Edit Settings",
+                "value": "editsettings"
+              },
+              {
+                "label": "Enable Award",
+                "value": "enable_award"
+              },
+              {
+                "label": "Enable Post Crowd Control Filtering",
+                "value": "enable_post_crowd_control_filter"
+              },
+              {
+                "label": "Events",
+                "value": "events"
+              },
+              {
+                "label": "Award Hidden",
+                "value": "hidden_award"
+              },
+              {
+                "label": "Ignore Reports",
+                "value": "ignorereports"
+              },
+              {
+                "label": "Invite Moderator",
+                "value": "invitemoderator"
+              },
+              {
+                "label": "Invite Subscriber",
+                "value": "invitesubscriber"
+              },
+              {
+                "label": "Lock Post",
+                "value": "lock"
+              },
+              {
+                "label": "Mark NSFW",
+                "value": "marknsfw"
+              },
+              {
+                "label": "Mark As Original Content",
+                "value": "markoriginalcontent"
+              },
+              {
+                "label": "Mod Award Given",
+                "value": "mod_award_given"
+              },
+              {
+                "label": "Enroll In New Modmail",
+                "value": "modmail_enrollment"
+              },
+              {
+                "label": "Mute User",
+                "value": "muteuser"
+              },
+              {
+                "label": "Override Subreddit Classification",
+                "value": "overrideclassification"
+              },
+              {
+                "label": "Remove Community Topics",
+                "value": "remove_community_topics"
+              },
+              {
+                "label": "Remove Comment",
+                "value": "removecomment"
+              },
+              {
+                "label": "Remove Contributor",
+                "value": "removecontributor"
+              },
+              {
+                "label": "Remove Post",
+                "value": "removelink"
+              },
+              {
+                "label": "Remove Moderator",
+                "value": "removemoderator"
+              },
+              {
+                "label": "Remove Wiki Contributor",
+                "value": "removewikicontributor"
+              },
+              {
+                "label": "Reorder Moderators",
+                "value": "reordermoderators"
+              },
+              {
+                "label": "Reorder Removal Reason",
+                "value": "reorderremovalreason"
+              },
+              {
+                "label": "Reorder Rules",
+                "value": "reorderrules"
+              },
+              {
+                "label": "Request Assistance",
+                "value": "request_assistance"
+              },
+              {
+                "label": "Set Contest Mode",
+                "value": "setcontestmode"
+              },
+              {
+                "label": "Permissions",
+                "value": "setpermissions"
+              },
+              {
+                "label": "Set Suggested Sort",
+                "value": "setsuggestedsort"
+              },
+              {
+                "label": "Show Comment",
+                "value": "showcomment"
+              },
+              {
+                "label": "Snooze Reports",
+                "value": "snoozereports"
+              },
+              {
+                "label": "Spam Comment",
+                "value": "spamcomment"
+              },
+              {
+                "label": "Spam Post",
+                "value": "spamlink"
+              },
+              {
+                "label": "Mark Spoiler",
+                "value": "spoiler"
+              },
+              {
+                "label": "Sticky Post",
+                "value": "sticky"
+              },
+              {
+                "label": "Submit Content Rating Survey",
+                "value": "submit_content_rating_survey"
+              },
+              {
+                "label": "Submit Scheduled Post",
+                "value": "submit_scheduled_post"
+              },
+              {
+                "label": "Unban User",
+                "value": "unbanuser"
+              },
+              {
+                "label": "Unignore Reports",
+                "value": "unignorereports"
+              },
+              {
+                "label": "Uninvite Moderator",
+                "value": "uninvitemoderator"
+              },
+              {
+                "label": "Unlock Post",
+                "value": "unlock"
+              },
+              {
+                "label": "Unmute User",
+                "value": "unmuteuser"
+              },
+              {
+                "label": "Unset Contest Mode",
+                "value": "unsetcontestmode"
+              },
+              {
+                "label": "Unsnooze Reports",
+                "value": "unsnoozereports"
+              },
+              {
+                "label": "Unmark Spoiler",
+                "value": "unspoiler"
+              },
+              {
+                "label": "Unsticky Post",
+                "value": "unsticky"
+              },
+              {
+                "label": "Update Removal Reason",
+                "value": "updateremovalreason"
+              },
+              {
+                "label": "Ban From Wiki",
+                "value": "wikibanned"
+              },
+              {
+                "label": "Add Wiki Contributor",
+                "value": "wikicontributor"
+              },
+              {
+                "label": "Delist/Relist Wiki Pages",
+                "value": "wikipagelisted"
+              },
+              {
+                "label": "Wiki Page Permissions",
+                "value": "wikipermlevel"
+              },
+              {
+                "label": "Wiki Revise Page",
+                "value": "wikirevise"
+              },
+              {
+                "label": "Unban From Wiki",
+                "value": "wikiunbanned"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "triggers": {
+    "onAppInstall": "/internal/triggers/app-lifecycle",
+    "onAppUpgrade": "/internal/triggers/app-lifecycle",
+    "onCommentCreate": "/internal/triggers/content",
+    "onCommentReport": "/internal/triggers/reported",
+    "onCommentSubmit": "/internal/triggers/content",
+    "onModAction": "/internal/triggers/mod-action",
+    "onModMail": "/internal/triggers/modmail",
+    "onPostCreate": "/internal/triggers/content",
+    "onPostReport": "/internal/triggers/reported",
+    "onPostSubmit": "/internal/triggers/content"
+  },
+  "scheduler": {
+    "tasks": {
+      "relay": {
+        "endpoint": "/internal/scheduler/relay"
+      },
+      "check-front-page": {
+        "endpoint": "/internal/scheduler/check-front-page"
+      },
+      "scan-modqueue": {
+        "endpoint": "/internal/scheduler/scan-modqueue"
+      }
+    }
+  }
+}

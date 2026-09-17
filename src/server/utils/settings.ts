@@ -13,6 +13,17 @@ export async function getStringSetting(name: string, defaultValue = "") {
     return typeof value === "string" ? value : defaultValue;
 }
 
+export async function getStringArraySetting(name: string, defaultValue: string[] = []) {
+    const value = await settings.get(name);
+    if (Array.isArray(value)) {
+        return value.filter((item): item is string => typeof item === "string");
+    }
+    if (typeof value === "string") {
+        return [value];
+    }
+    return defaultValue;
+}
+
 export async function getBooleanSetting(name: string, defaultValue = false) {
     const value = firstSettingValue(await settings.get(name));
     if (typeof value === "boolean") {

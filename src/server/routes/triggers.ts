@@ -5,7 +5,9 @@ import type {
 
 import {handleContentTrigger} from "../handlers/content.js";
 import {handleModActionTrigger} from "../handlers/modAction.js";
-import {resetFrontPageScheduler} from "../services/frontPageScheduler.js";
+import {handleModmailTrigger} from "../handlers/modmail.js";
+import {handleReportedTrigger} from "../handlers/reported.js";
+import {resetSchedulers} from "../services/frontPageScheduler.js";
 import type {ContentTriggerRequest, LifecycleTriggerRequest} from "../types.js";
 
 export const triggersRouter = new Hono();
@@ -14,7 +16,7 @@ triggersRouter.post(
     "/internal/triggers/app-lifecycle",
     async (c) => {
         await c.req.json<LifecycleTriggerRequest>();
-        await resetFrontPageScheduler();
+        await resetSchedulers();
         return c.json({}, 200);
     },
 );
@@ -33,6 +35,24 @@ triggersRouter.post(
     async (c) => {
         const body = await c.req.json<OnModActionRequest>();
         await handleModActionTrigger(body);
+        return c.json({}, 200);
+    },
+);
+
+triggersRouter.post(
+    "/internal/triggers/modmail",
+    async (c) => {
+        const body = await c.req.json();
+        await handleModmailTrigger(body);
+        return c.json({}, 200);
+    },
+);
+
+triggersRouter.post(
+    "/internal/triggers/reported",
+    async (c) => {
+        const body = await c.req.json();
+        await handleReportedTrigger(body);
         return c.json({}, 200);
     },
 );

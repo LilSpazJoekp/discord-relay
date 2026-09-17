@@ -1,7 +1,7 @@
 import {reddit, redis, type Subreddit} from "@devvit/web/server";
 
 import type {FlairLike, ItemType, RedditItem} from "../types.js";
-import {matchesFlair, normalize, splitCsv} from "../utils/flair.js";
+import {matchesFlair, matchesFlairTemplateId, normalize, splitCsv} from "../utils/flair.js";
 import {getUniqueId, isPostItem} from "../utils/items.js";
 import {toUserId} from "../utils/redditIds.js";
 import {getBooleanSetting, getNumberSetting, getStringSetting} from "../utils/settings.js";
@@ -24,23 +24,28 @@ export async function shouldRelay(
 
     const subreddit: Subreddit = await reddit.getCurrentSubreddit();
 
-    const flairMap = new Map<string, string>();
+    const userFlairMap = new Map<string, string>();
+    const postFlairMap = new Map<string, string>();
 
     const ignoreUserFlair = await getStringSetting("ignore-user-flair");
+    const ignoreUserFlairTemplateId = await getStringSetting("ignore-user-flair-template-id");
     const userFlair = await getStringSetting("user-flair");
+    const userFlairTemplateId = await getStringSetting("user-flair-template-id");
     if (ignoreUserFlair || userFlair) {
         const userFlairs = await subreddit.getUserFlairTemplates();
         for (const flair of userFlairs) {
-            flairMap.set(flair.id, normalize(flair.text));
+            userFlairMap.set(normalize(flair.id), normalize(flair.text));
         }
     }
 
     const ignorePostFlair = await getStringSetting("ignore-post-flair");
+    const ignorePostFlairTemplateId = await getStringSetting("ignore-post-flair-template-id");
     const configuredPostFlair = await getStringSetting("post-flair");
+    const postFlairTemplateId = await getStringSetting("post-flair-template-id");
     if (ignorePostFlair || configuredPostFlair) {
         const postFlairs = await subreddit.getPostFlairTemplates();
         for (const flair of postFlairs) {
-            flairMap.set(flair.id, normalize(flair.text));
+            postFlairMap.set(normalize(flair.id), normalize(flair.text));
         }
     }
 
@@ -81,23 +86,21 @@ export async function shouldRelay(
                 return false;
             }
         }
-        if (ignoreUserFlair) {
-            let shouldRelayUserFlair: boolean;
-            const ignoreUserFlairs = splitCsv(ignoreUserFlair);
-            shouldRelayUserFlair = !matchesFlair(ignoreUserFlairs, authorFlair, flairMap);
-            if (!shouldRelayUserFlair) {
-                console.log(`Should relay event (shouldRelayUserFlair): ${shouldRelayUserFlair}`);
-                return false;
-            }
+        const shouldIgnoreUserFlair = (ignoreUserFlair
+            && matchesFlair(splitCsv(ignoreUserFlair), authorFlair, userFlairMap))
+            || (ignoreUserFlairTemplateId
+                && matchesFlairTemplateId(splitCsv(ignoreUserFlairTemplateId), authorFlair));
+        if (shouldIgnoreUserFlair) {
+            console.log("Should relay event (shouldRelayUserFlair): false");
+            return false;
         }
-        if (ignorePostFlair && itemType === "post") {
-            let shouldRelayPostFlair: boolean;
-            const ignorePostFlairs = splitCsv(ignorePostFlair);
-            shouldRelayPostFlair = !matchesFlair(ignorePostFlairs, postFlair, flairMap);
-            if (!shouldRelayPostFlair) {
-                console.log(`Should relay event (shouldRelayPostFlair): ${shouldRelayPostFlair}`);
-                return false;
-            }
+        const shouldIgnorePostFlair = itemType === "post" && ((ignorePostFlair
+            && matchesFlair(splitCsv(ignorePostFlair), postFlair, postFlairMap))
+            || (ignorePostFlairTemplateId
+                && matchesFlairTemplateId(splitCsv(ignorePostFlairTemplateId), postFlair)));
+        if (shouldIgnorePostFlair) {
+            console.log("Should relay event (shouldRelayPostFlair): false");
+            return false;
         }
         const username = await getStringSetting("specific-username");
         if (username) {
@@ -110,14 +113,18 @@ export async function shouldRelay(
             }
             checks.push(shouldRelayItem);
         }
-        if (userFlair) {
-            const userFlairs = splitCsv(userFlair);
-            shouldRelayItem = matchesFlair(userFlairs, authorFlair, flairMap);
+        if (userFlair || userFlairTemplateId) {
+            shouldRelayItem = Boolean((userFlair
+                && matchesFlair(splitCsv(userFlair), authorFlair, userFlairMap))
+                || (userFlairTemplateId
+                    && matchesFlairTemplateId(splitCsv(userFlairTemplateId), authorFlair)));
             checks.push(shouldRelayItem);
         }
-        if (configuredPostFlair && itemType === "post") {
-            const postFlairs = splitCsv(configuredPostFlair);
-            shouldRelayItem = matchesFlair(postFlairs, postFlair, flairMap);
+        if ((configuredPostFlair || postFlairTemplateId) && itemType === "post") {
+            shouldRelayItem = Boolean((configuredPostFlair
+                && matchesFlair(splitCsv(configuredPostFlair), postFlair, postFlairMap))
+                || (postFlairTemplateId
+                    && matchesFlairTemplateId(splitCsv(postFlairTemplateId), postFlair)));
             checks.push(shouldRelayItem);
         }
         if (relayMode === "front-page") {

@@ -2,8 +2,9 @@ import {Hono} from "hono";
 import {reddit, redis} from "@devvit/web/server";
 import type {TaskRequest, TaskResponse} from "@devvit/web/server";
 
-import {relay, scheduleRelay} from "../services/relay.js";
+import {relayWebhook, scheduleRelay} from "../services/relay.js";
 import {shouldRelay} from "../services/shouldRelay.js";
+import {scanModqueue} from "../services/modqueue.js";
 import type {RelayJobData} from "../types.js";
 import {isRemoved} from "../utils/items.js";
 import {toCommentId, toPostId} from "../utils/redditIds.js";
@@ -23,9 +24,17 @@ schedulerRouter.post(
             data: payload,
             itemId,
             itemType,
+            message,
+            trackingKey,
             uniqueId,
             webhookUrl,
         } = data;
+        const relayTrackingKey = trackingKey ?? `relay:unmoderated:legacy-webhook-url:${uniqueId}`;
+        const relayMessage = message ?? payload;
+        if (!relayMessage) {
+            console.log(`Relay scheduled job missing message data: ${uniqueId}`);
+            return c.json<TaskResponse>({}, 400);
+        }
         const item = itemType === "post"
             ? await reddit.getPostById(toPostId(itemId))
             : await reddit.getCommentById(toCommentId(itemId));
@@ -34,7 +43,7 @@ schedulerRouter.post(
             return c.json<TaskResponse>({}, 200);
         }
         console.log(`Relaying event ${uniqueId}`);
-        await relay(item, webhookUrl, payload);
+        await relayWebhook(relayTrackingKey, webhookUrl, relayMessage);
         return c.json<TaskResponse>({}, 200);
     },
 );
@@ -64,6 +73,19 @@ schedulerRouter.post(
                 await scheduleRelay(post, false);
             }
         }));
+        return c.json<TaskResponse>({}, 200);
+    },
+);
+
+schedulerRouter.post(
+    "/internal/scheduler/scan-modqueue",
+    async (c) => {
+        await c.req.json<TaskRequest>();
+        try {
+            await scanModqueue();
+        } catch (err) {
+            console.error(`Modqueue scan failed; ${err instanceof Error ? err.stack : String(err)}`);
+        }
         return c.json<TaskResponse>({}, 200);
     },
 );

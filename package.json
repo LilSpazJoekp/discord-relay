@@ -8,6 +8,8 @@
     "build": "npm run build:server",
     "build:server": "esbuild src/server/index.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/server/index.cjs",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
     "watch:server": "npm run build:server -- --watch",
     "playtest": "devvit playtest",
     "bump-major": "devvit upload --bump major",
@@ -20,13 +22,14 @@
     "publish-prerelease": "npm run bump-prerelease && devvit publish --public"
   },
   "dependencies": {
-    "@devvit/web": "0.13.3",
+    "@devvit/web": "0.14.1",
     "@hono/node-server": "^2.0.5",
-    "devvit": "0.13.3",
+    "devvit": "0.14.1",
     "hono": "^4.12.25"
   },
   "devDependencies": {
-    "@devvit/tsconfig": "0.13.3",
+    "@devvit/tsconfig": "0.14.1",
+    "@vitest/coverage-v8": "^4.1.9",
     "esbuild": "0.25.9",
     "typescript": "5.8.3",
     "vitest": "^4.1.9"

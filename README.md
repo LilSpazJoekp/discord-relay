@@ -1,68 +1,115 @@
 # Discord Relay
 
-Discord Relay is an app that allows subreddit moderators to relay items from their subreddit to a Discord channel. This
-is useful for subreddits that want to keep their Discord server up-to-date with the latest content from their subreddit.
-This also can be used to relay a specific users' posts and/or comments to Discord.
+Discord Relay is an app that allows subreddit moderators to relay items from their subreddit to Discord or Slack
+channels. This is useful for subreddits that want to keep their chat channels up-to-date with the latest content and
+moderation activity from their subreddit. This also can be used to relay a specific user's posts and/or comments to a
+webhook destination.
 
 ## Usage
 
-Discord Relay runs when a comment or post is created (after Reddit's safety checks). The only time you need to interact
-with it is during the setup process. To set up and configure Discord Relay, navigate to the settings page on your
-subreddit:`https://developers.reddit.com/r/SUBREDDIT/apps/discord-relay`.
+Discord Relay runs when supported subreddit events are created or received. The original post/comment relay still runs
+after Reddit's safety checks unless `Skip Reddit Safety Checks` under `Safety and Embeds` is enabled. Reported content,
+modmail, and modlog forwarding run from Devvit triggers, and modqueue forwarding runs from a scheduled scan.
+
+The only time you need to interact with it is during the setup process. To set up and configure Discord Relay, navigate
+to the settings page on your subreddit:
+`https://developers.reddit.com/r/SUBREDDIT/apps/discord-relay`.
+
+Configure one or more destination webhook URLs, then select which event buckets each destination receives. Empty webhook
+URL fields are allowed and ignored, so unused destination slots do not need to be filled in.
 
 ## Configuration
 
-- **Discord Webhook URL**: The URL of the Discord webhook you want to relay items to.
-- **Relay Mode**: Determines when items are relayed to Discord. Both options will include the set delay
-    - **Immediately**: Relay items as soon as they are created.
-    - **Front Page**: Relay only items that hit the front page of the subreddit.
-- **Role Ping settings**: The role to ping when a new item is relayed to Discord.
-    - **Ping a role?**: If enabled, ping the role when a new item is relayed.
-    - **Role ID**: The Discord ID of the role to ping. To obtain, enable Developer Mode in Discord, right-click the
-      role, and click "Copy ID".
-- **Content Type**: The type of content to relay to Discord.
-    - **All**: Relay all items.
-    - **Comments**: Relay only comments.
-    - **Posts**: Relay only posts.
-- **Filter Settings**: Settings to determine which items are relayed to Discord.
-    - **Inclusion Filters**
-        - **Username(s)/Moderators Only**: Only relay items from specific users or moderators. Username (without the "
-          u/") or enter "m" for all moderators. Separate each item with a comma to include multiple users.
-        - **User Flair Text**: User flair text to match against. Separate each item with a comma to include multiple
-          flairs.
-        - **Post Flair Text**: Post flair text to match against. Separate each item with a comma to include multiple
-          flairs.
-        - **Only Approved Authors**: If enabled, only authors that are also 'Approved Users' can relay. This list is
-          located at `https://www.reddit.com/r/SUBREDDIT/about/contributors`.
-    - **Exclusion Filters**
-        - **Username(s)/Moderators Only**: Ignore items from specific users or moderators. Username (without the "u/")
-          or enter "m" for all moderators. Separate each item with a comma to include multiple users.
-        - **User Flair Text**: User flair text to ignore. Separate each item with a comma to include multiple flairs.
-        - **Post Flair Text**: Post flair text to ignore. Separate each item with a comma to include multiple flairs.
-        - **Ignore Shadowbanned or Deleted Authors**: If enabled, authors that deleted their account or is shadowbanned
-          will not be relayed.
-- **Delay Settings**: Settings to determine how long to wait before relaying items to Discord. Note: The minimum delay
-  is 3 minutes and can be delayed by 1-2 minutes due to Developer Platform limitations.
-    - **Comment Delay**: Number of minutes to delay relaying comments to Discord. Enter 0 to disable the delay. Must be
-      at least 3 minutes.
-    - **Post Delay**: Number of minutes to delay relaying posts to Discord. Enter 0 to disable the delay. Must be at
-      least 3 minutes.
-    - **Ignore Removed Items**: If enabled, do not relay items that have been removed.
-    - **Retry On Approval**: If enabled, retry relaying items that were removed and not relayed after the delay.
-    - **Comment Delay After Approval**: Number of minutes to delay relaying comments to Discord after approval. This is useful to allow
-      Discord to correctly render the embed. Enter 0 to disable the delay. Must be at least 3 minutes.
-    - **Post Delay After Approval**: Number of minutes to delay relaying posts to Discord after approval. This is useful to allow
-      Discord to correctly render the embed. Enter 0 to disable the delay. Must be at least 3 minutes.
-    - **Ignore Safety Checks**: If enabled, skip built-in Reddit safety checks and relay the item to Discord. Useful for
-      moderation feeds.
-- **Suppress Item Embed**: If enabled, the embed of the comment/post like being relayed will be suppressed.
-- **Suppress Author Embed**: If enabled, the embed of the author will be suppressed. Profiles do not have embeds shown
-  unless they are NSFW.
+The bold names below match the labels displayed in the app settings. Settings are listed in the same group order as
+`devvit.json`.
+
+- **Webhook Destinations**: Configure up to six Discord or Slack webhook destinations and select the events sent to each
+  one.
+    - **Destination 1**, **Destination 2**, **Destination 3**, **Destination 4**, **Destination 5**, and
+      **Destination 6** each contain:
+        - **Enabled**: Turns the destination slot on or off without deleting its configuration.
+        - **Webhook URL**: Optional Discord or Slack incoming webhook URL. Empty slots are ignored. Slack URLs beginning
+          with `https://hooks.slack.com/services/` receive Slack payloads; other URLs receive Discord payloads.
+        - **Event Types**: Select `All`, `Posts`, `Comments`, `Modlog`, `Modmail`, `Modqueue`, `Reported`, or
+          `Unmoderated`.
+    - **Legacy Unmoderated Destination**: Backward-compatible fallback for unmoderated items when no enabled numbered
+      destination matches the item.
+        - **Webhook URL**: Optional legacy webhook used only for that fallback.
+- **Unmoderated Relay**: Control how unmoderated posts and comments are selected and relayed.
+    - **Relay Behavior**: Choose when eligible content is processed.
+        - **Enabled**: Turns unmoderated post and comment forwarding on or off.
+        - **Relay Mode**: `Immediately` uses content triggers. `Front Page` scans up to 100 top posts once per minute
+          and does not relay comments. Configured delays apply in either mode.
+        - **Front Page Time Frame**: Stores the selected top-post time frame for Front Page mode. The current scanner
+          does not yet apply this value.
+    - **Discord Role Ping**: Optionally append a Discord role mention to unmoderated relays.
+        - **Ping Discord Role**: Enables the role mention for Discord destinations.
+        - **Discord Role ID**: Numeric Discord role ID. Enable Developer Mode in Discord, right-click the role, and
+          select "Copy ID".
+    - **Included Content**: `Content Type` and `Only Approved Authors` are required checks. When username, flair text,
+      or flair template ID filters are configured, matching any one of those filters includes the item.
+        - **Content Type**: Select `All`, `Posts Only`, or `Comments Only`.
+        - **Username(s)/Moderators Only**: Comma-separated usernames without `u/`; use `m` to match all moderators.
+        - **User Flair Text**: Comma-separated case-insensitive exact user-flair matches.
+        - **User Flair Template ID**: Comma-separated template ID matches.
+        - **Post Flair Text**: Comma-separated case-insensitive exact post-flair matches; applies only to posts.
+        - **Post Flair Template ID**: Comma-separated template ID matches; applies only to posts.
+        - **Only Approved Authors**: Requires the author to be in the subreddit's approved-user list.
+    - **Excluded Content**: Matching any configured username, flair text, flair template ID, or author-status exclusion
+      blocks an item even when an inclusion filter matches.
+        - **Ignore Username(s)/Moderators**: Comma-separated usernames without `u/`; use `m` for all moderators.
+        - **Ignore User Flair Text**: Comma-separated case-insensitive exact user-flair exclusions.
+        - **Ignore User Flair Template ID**: Comma-separated template ID exclusions.
+        - **Ignore Post Flair Text**: Comma-separated case-insensitive exact post-flair exclusions; applies only to
+          posts.
+        - **Ignore Post Flair Template ID**: Comma-separated template ID exclusions; applies only to posts.
+        - **Ignore Shadowbanned or Deleted Authors**: Skips content whose author cannot be resolved.
+    - **Timing and Approval**: A delay of `0` is disabled; nonzero delays must be at least three minutes.
+        - **Comment Delay Minutes**: Delay before relaying an eligible comment.
+        - **Post Delay Minutes**: Delay before relaying an eligible post.
+        - **Ignore Removed Items**: Skips an item if it has been removed when the relay runs.
+        - **Retry On Approval**: Retries an eligible item when a moderator later approves it.
+        - **Comment Delay After Approval Minutes**: Delay applied to an approved-comment retry.
+        - **Post Delay After Approval Minutes**: Delay applied to an approved-post retry.
+        - **Post Score Threshold**: Checks a minimum score for Front Page posts. A matching username or flair inclusion
+          currently takes precedence over this threshold.
+    - **Safety and Embeds**: Configure trigger timing and Discord link-preview controls for unmoderated relays. Current
+      payload normalization does not yet preserve either suppression setting.
+        - **Skip Reddit Safety Checks**: Uses submit events instead of waiting for Reddit's create events.
+        - **Suppress Item Embed**: Requests suppression of the relayed item link preview.
+        - **Suppress Author Embed**: Requests suppression of the author profile link preview.
+- **Modmail Relay**: Forward modmail messages. Modmail actions are not forwarded.
+    - **Enabled**: Turns modmail forwarding on or off.
+    - **Forward Scenario**: Select `Only New Threads`, `All Non-Mod Replies`, or `All Messages`.
+- **Modqueue Relay**: Scan the full modqueue once per minute. Every configured filter category must pass; within a
+  comma-separated keyword field, matching any case-insensitive substring passes that field.
+    - **Enabled**: Turns scheduled modqueue scans on or off.
+    - **Content Type**: Select `All`, `Posts`, or `Comments`.
+    - **Minimum Report Count**: Required total report count; `0` disables this minimum.
+    - **Minimum Age Minutes**: Youngest allowed item age; `0` disables this minimum.
+    - **Maximum Age Minutes**: Oldest allowed item age; `0` disables this maximum.
+    - **Report Contains**: Comma-separated case-insensitive substrings matched against report reasons.
+    - **Post/Comment Body or Title Contains**: Comma-separated case-insensitive substrings matched against item text.
+    - **Only Forward Mod Reported Items**: Requires at least one moderator report.
+- **Reported Content Relay**: Forward post and comment report events as they arrive.
+    - **Enabled**: Turns reported-content forwarding on or off.
+    - **Report Type**: Select `All`, `Mod Report Only`, or `User Reports Only`.
+    - **Minimum Report Count**: Required total report count; `0` disables this minimum.
+    - **Mod Reports Bypass Minimum Count**: Lets a moderator report bypass only the minimum-count requirement.
+- **Modlog Relay**: Forward moderation-action events.
+    - **Enabled**: Turns modlog forwarding on or off.
+    - **Actions to Forward**: Select `All` or specific moderation actions.
+
+## Development
+
+Run `npm test` to execute the test suite, or `npm run test:coverage` to collect coverage for all TypeScript source files,
+including files without tests. Coverage is printed in the terminal and saved to `coverage/index.html` (HTML) and
+`coverage/lcov.info` (LCOV). Generated reports are ignored by Git.
 
 ## Known Issues
 
-- Items removed by u/AutoModerator may still be relayed to Discord. There is not a way to determine if an item was
-  removed by u/AutoModerator at this time.
+- Items removed by u/AutoModerator may still be relayed to Discord or Slack. There is not a way to determine if an item
+  was removed by u/AutoModerator at this time.
 
 ## Feedback
 
@@ -70,6 +117,15 @@ If you have any feedback or suggestions for Discord Relay, file a bug report or 
 [GitHub page](https://github.com/LilSpazJoekp/discord-relay).
 
 ## Changes
+
+### 3.0.0
+
+- Added Slack webhook support.
+- Added up to six optional webhook destinations, each with enable/disable and event-type routing controls.
+- Added configurable forwarding for reported content, modqueue items, modmail messages, and modlog actions.
+- Added user and post flair template ID filters alongside the existing flair text filters.
+- Reorganized the existing post and comment settings under `Unmoderated Relay` and added an enable control while
+  preserving existing setting keys and the legacy webhook fallback.
 
 ## 2.6.2
 

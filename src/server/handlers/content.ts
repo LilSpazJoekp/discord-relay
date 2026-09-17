@@ -1,6 +1,7 @@
 import {reddit, redis} from "@devvit/web/server";
 
 import type {ItemType, ContentTriggerRequest} from "../types.js";
+import {isBucketEnabled} from "../services/destinations.js";
 import {scheduleRelay} from "../services/relay.js";
 import {shouldRelay} from "../services/shouldRelay.js";
 import {getUniqueId, isPostItem} from "../utils/items.js";
@@ -8,6 +9,10 @@ import {toCommentId, toPostId} from "../utils/redditIds.js";
 import {getBooleanSetting, getStringSetting} from "../utils/settings.js";
 
 export async function handleContentTrigger(event: ContentTriggerRequest) {
+    if (!await isBucketEnabled("unmoderated")) {
+        return;
+    }
+
     const skipSafetyChecks = await getBooleanSetting("skip-safety-checks");
     if (isSubmitEvent(event) === !skipSafetyChecks) {
         console.log(`${skipSafetyChecks ? "Skipping" : "Waiting for"} safety checks`);

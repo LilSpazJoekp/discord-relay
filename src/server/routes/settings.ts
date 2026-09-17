@@ -10,10 +10,7 @@ export const settingsRouter = new Hono();
 settingsRouter.post(
     "/internal/settings/validate-webhook-url",
     async (c) => {
-        const body = await c.req.json<SettingsValidationRequest<string>>();
-        if (!body.value || body.value.length === 0) {
-            return c.json({success: false, error: "Please enter a webhook URL"}, 200);
-        }
+        await c.req.json<SettingsValidationRequest<string>>();
         return c.json({success: true}, 200);
     },
 );
