@@ -4,6 +4,7 @@ import type {OnCommentReportRequest, OnPostReportRequest} from "@devvit/shared";
 import type {ItemType, RedditItem} from "../types.js";
 import {getDestinations, isBucketEnabled} from "../services/destinations.js";
 import {buildReportedMessage, getReportCount, getReportReasons} from "../services/messages.js";
+import {isIgnoredAuthor} from "../services/ignoredAuthors.js";
 import {relayToDestinations} from "../services/relay.js";
 import {getUniqueId} from "../utils/items.js";
 import {asRecord, getString} from "../utils/records.js";
@@ -47,6 +48,10 @@ export async function handleReportedTrigger(event: OnCommentReportRequest | OnPo
 }
 
 async function shouldRelayReport(item: RedditItem) {
+    if (await isIgnoredAuthor(item.authorName, {additionalSettingName: "reported-ignore-usernames"})) {
+        return false;
+    }
+
     const modReportCount = getReportReasons(item, "mod").length;
     const userReportCount = getReportReasons(item, "user").length;
     const reportType = await getStringSetting("reported-report-type", "all");

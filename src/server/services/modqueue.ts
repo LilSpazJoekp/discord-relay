@@ -3,6 +3,7 @@ import {reddit, redis} from "@devvit/web/server";
 import type {ItemType, RedditItem} from "../types.js";
 import {getDestinations, isBucketEnabled} from "./destinations.js";
 import {buildModqueueMessage, getReportCount, getReportReasons} from "./messages.js";
+import {isIgnoredAuthor} from "./ignoredAuthors.js";
 import {relayToDestinations} from "./relay.js";
 import {isCommentItem, getUniqueId} from "../utils/items.js";
 import {splitCsv} from "../utils/flair.js";
@@ -69,6 +70,10 @@ async function processModqueueItems(items: RedditItem[], modqueueDestinations: A
 }
 
 async function shouldForwardModqueueItem(item: RedditItem) {
+    if (await isIgnoredAuthor(item.authorName, {additionalSettingName: "modqueue-ignore-usernames"})) {
+        return false;
+    }
+
     if (getReportCount(item) < await getNumberSetting("modqueue-minimum-report-count")) {
         return false;
     }

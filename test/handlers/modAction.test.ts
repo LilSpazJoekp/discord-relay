@@ -132,4 +132,35 @@ describe("moderation actions", () => {
         expect(reddit.getPostById).not.toHaveBeenCalled();
         expect(scheduleRelay).not.toHaveBeenCalled();
     });
+    it("does not relay a modlog action by a moderator on the modlog-only ignore list", async () => {
+        settingValues["modlog-ignore-usernames"] = "automoderator";
+
+        await handleModActionTrigger(actionEvent({moderator: {name: "AutoModerator"}}));
+
+        expect(relayToDestinations).not.toHaveBeenCalled();
+    });
+
+    it("does not let the m token in the modlog list silence the whole modlog", async () => {
+        settingValues["modlog-ignore-usernames"] = "m";
+
+        await handleModActionTrigger(actionEvent({moderator: {name: "AutoModerator"}}));
+
+        expect(relayToDestinations).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not relay a modlog action by a globally ignored moderator", async () => {
+        settingValues["global-ignore-usernames"] = "automoderator";
+
+        await handleModActionTrigger(actionEvent({moderator: {name: "AutoModerator"}}));
+
+        expect(relayToDestinations).not.toHaveBeenCalled();
+    });
+
+    it("does not let the m token silence the whole modlog", async () => {
+        settingValues["global-ignore-usernames"] = "m";
+
+        await handleModActionTrigger(actionEvent({moderator: {name: "AutoModerator"}}));
+
+        expect(relayToDestinations).toHaveBeenCalledTimes(1);
+    });
 });

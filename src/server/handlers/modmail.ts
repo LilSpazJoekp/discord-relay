@@ -3,6 +3,7 @@ import {reddit} from "@devvit/web/server";
 import {getDestinations, isBucketEnabled} from "../services/destinations.js";
 import {buildModmailMessage} from "../services/messages.js";
 import {relayToDestinations} from "../services/relay.js";
+import {isIgnoredAuthor} from "../services/ignoredAuthors.js";
 import {asRecord, getString} from "../utils/records.js";
 import {getStringSetting} from "../utils/settings.js";
 import {REDDIT_THING_ID_PREFIX_PATTERN} from "../constants.js";
@@ -12,16 +13,23 @@ export async function handleModmailTrigger(event: unknown) {
         return;
     }
 
-    if (!await shouldSendModmail(event)) {
+    // Both are resolved at most once, and only when something actually needs them, so a
+    // filtered-out event costs no settings reads and no conversation lookup.
+    let destinationsPromise: ReturnType<typeof getDestinations> | undefined;
+    const loadDestinations = () => (destinationsPromise ??= getDestinations("modmail"));
+    let enrichment: Promise<unknown> | undefined;
+    const enrich = () => (enrichment ??= enrichModmailEvent(event));
+
+    if (!await shouldSendModmail(event, {enrich, loadDestinations})) {
         return;
     }
 
-    const destinations = await getDestinations("modmail");
+    const destinations = await loadDestinations();
     if (destinations.length === 0) {
         return;
     }
 
-    const enrichedEvent = await enrichModmailEvent(event);
+    const enrichedEvent = await enrich();
     const record = asRecord(enrichedEvent);
     await relayToDestinations({
         bucket: "modmail",
@@ -31,7 +39,13 @@ export async function handleModmailTrigger(event: unknown) {
     });
 }
 
-async function shouldSendModmail(event: unknown) {
+async function shouldSendModmail(
+    event: unknown,
+    {enrich, loadDestinations}: {
+        enrich: () => Promise<unknown>;
+        loadDestinations: () => ReturnType<typeof getDestinations>;
+    },
+) {
     const record = asRecord(event);
     const conversation = asRecord(record.conversation);
     const message = asRecord(record.message);
@@ -41,21 +55,54 @@ async function shouldSendModmail(event: unknown) {
         return false;
     }
 
+    const authorType = getString(author, "type")
+        || getString(record, "authorType")
+        || getString(record, "messageAuthorType");
+    const isModerator = normalizeAuthorType(authorType) === "moderator" || author.isMod === true;
+    const authorName = getString(author, "name")
+        || getString(author, "username")
+        || getString(record, "author")
+        || getString(record, "messageAuthor");
+
+    // Applies to every scenario: an ignored author is never forwarded.
+    if (await isIgnoredAuthor(authorName, {isModerator, additionalSettingName: "modmail-ignore-usernames"})) {
+        console.log(`Not relaying modmail from ignored author: ${authorName || "(unknown)"}`);
+        return false;
+    }
+
     const scenario = await getStringSetting("modmail-scenario", "new-threads");
     if (scenario === "all-messages") {
         return true;
     }
 
-    const isModerator = (getString(author, "type") || getString(record, "authorType") || getString(record, "messageAuthorType")).toLowerCase() === "moderator"
-        || author.isMod === true;
     if (scenario === "non-mod-replies") {
         return !isModerator;
     }
 
+    // Nothing in the trigger payload distinguishes a new thread from a reply, so this is
+    // the one scenario that has to look the conversation up for its numMessages. Skip
+    // that call when there is nowhere to relay to.
+    if ((await loadDestinations()).length === 0) {
+        return false;
+    }
+    const fetched = asRecord(asRecord(await enrich()).conversation);
+    const numMessages = typeof fetched.numMessages === "number" ? fetched.numMessages : conversation.numMessages;
+    if (typeof numMessages === "number") {
+        return numMessages === 1;
+    }
     return record.isNew === true
         || record.isNewThread === true
-        || record.isNewConversation === true
-        || conversation.numMessages === 1;
+        || record.isNewConversation === true;
+}
+
+/**
+ * The trigger sends the enum constant name, e.g. "ParticipatingAs_MODERATOR", while the
+ * proto documents the bare value "moderator". Normalising the prefix away accepts both,
+ * and still excludes PARTICIPANT_USER and PARTICIPANT_SR (a moderator of the *other*
+ * subreddit in an sr_sr conversation, who is not a moderator here).
+ */
+function normalizeAuthorType(value: string) {
+    return value.trim().toLowerCase().replace(/^participatingas_/, "");
 }
 
 async function enrichModmailEvent(event: unknown) {

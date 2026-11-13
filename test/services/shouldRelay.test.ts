@@ -239,6 +239,28 @@ describe("shouldRelay eligibility filters", () => {
 
         await expect(checkItem({itemType: "post", itemOverrides: {score: 1}})).resolves.toBe(true);
     });
+
+    it("excludes an author on the unmoderated-only ignore list", async () => {
+        settingValues["ignore-specific-username"] = "alice";
+
+        await expect(checkItem({itemType: "post"})).resolves.toBe(false);
+    });
+
+    it("excludes an author on the global ignore list before any other filter", async () => {
+        settingValues["global-ignore-usernames"] = "alice";
+
+        await expect(checkItem({itemType: "post"})).resolves.toBe(false);
+
+        // the global filter short-circuits, so no flair lookups happen
+        expect(getUserFlairTemplates).not.toHaveBeenCalled();
+        expect(getPostFlairTemplates).not.toHaveBeenCalled();
+    });
+
+    it("still relays authors that are not globally ignored", async () => {
+        settingValues["global-ignore-usernames"] = "someone-else";
+
+        await expect(checkItem({itemType: "post"})).resolves.toBe(true);
+    });
 });
 
 function checkItem({

@@ -10,6 +10,15 @@ updates:
         patterns:
           - devvit
           - "@devvit/*"
+    ignore:
+      # TypeScript 7 removed `downlevelIteration`, which @devvit/tsconfig/base.json still
+      # sets, so `tsc` fails with TS5102 before it compiles anything. A child tsconfig
+      # cannot unset an inherited compilerOption, so this is blocked until Devvit drops it
+      # (still present as of @devvit/tsconfig 0.15.1). The source itself already type-checks
+      # clean under 7.0.2. Remove this ignore once that upstream config is fixed.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: github-actions
     directory: /

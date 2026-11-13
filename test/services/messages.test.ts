@@ -1,6 +1,11 @@
 import {describe, expect, it} from "vitest";
 
-import {buildModActionMessage, buildModmailMessage, buildModqueueMessage} from "../../src/server/services/messages.js";
+import {
+    buildModActionMessage,
+    buildModmailMessage,
+    buildModqueueMessage,
+    buildReportedMessage,
+} from "../../src/server/services/messages.js";
 
 describe("relay messages", () => {
     it("formats mod action reddit objects as links instead of JSON", () => {
@@ -223,5 +228,237 @@ describe("relay messages", () => {
                 expect.objectContaining({name: "Item Type", value: "Comment"}),
             ]),
         }));
+    });
+    it("includes subreddit, author and a titled content link on modqueue posts", () => {
+        const message = buildModqueueMessage({
+            id: "post123",
+            subredditName: "nasa",
+            authorName: "DotFlimsy5712",
+            title: "Is this super rare pre a glitch",
+            permalink: "/r/nasa/comments/1x1n7ff/is_this_super_rare_pre_a_glitch/",
+            userReportReasons: [],
+            modReportReasons: [],
+            numberOfReports: 0,
+        } as unknown as Parameters<typeof buildModqueueMessage>[0]);
+
+        expect(message.embed?.fields).toEqual(expect.arrayContaining([
+            {name: "Subreddit", value: "[r/nasa](https://www.reddit.com/r/nasa)"},
+            {name: "Author", value: "[u/DotFlimsy5712](https://www.reddit.com/user/DotFlimsy5712)"},
+            {
+                name: "Link to content",
+                value: "[Post: Is this super rare pre a glitch](https://www.reddit.com/r/nasa/comments/1x1n7ff/is_this_super_rare_pre_a_glitch/)",
+            },
+        ]));
+    });
+
+    it("labels modqueue comment links with the start of the comment body", () => {
+        const message = buildModqueueMessage({
+            id: "comment123",
+            parentId: "post123",
+            subredditName: "nasa",
+            authorName: "alice",
+            body: "First line\nsecond line",
+            permalink: "/r/nasa/comments/post123/example/comment123",
+            userReportReasons: [],
+            modReportReasons: [],
+            numReports: 0,
+        } as unknown as Parameters<typeof buildModqueueMessage>[0]);
+
+        expect(message.embed?.fields).toEqual(expect.arrayContaining([
+            {
+                name: "Link to content",
+                value: "[Comment: First line second line](https://www.reddit.com/r/nasa/comments/post123/example/comment123)",
+            },
+        ]));
+    });
+
+    it("truncates long link labels and strips brackets that would break the markdown", () => {
+        const message = buildModqueueMessage({
+            id: "post123",
+            subredditName: "nasa",
+            authorName: "alice",
+            title: `[Serious] ${"a".repeat(200)}`,
+            permalink: "/r/nasa/comments/post123/example/",
+            userReportReasons: [],
+            modReportReasons: [],
+            numberOfReports: 0,
+        } as unknown as Parameters<typeof buildModqueueMessage>[0]);
+
+        const link = message.embed?.fields?.find((field) => field.name === "Link to content")?.value ?? "";
+        expect(link).not.toContain("[Serious]");
+        expect(link.startsWith("[Post: Serious ")).toBe(true);
+        expect(link).toContain("\u2026](https://www.reddit.com/r/nasa/comments/post123/example/)");
+    });
+
+    it("leaves deleted modqueue authors unlinked", () => {
+        const message = buildModqueueMessage({
+            id: "post123",
+            subredditName: "nasa",
+            authorName: "[deleted]",
+            title: "A post",
+            permalink: "/r/nasa/comments/post123/example/",
+            userReportReasons: [],
+            modReportReasons: [],
+            numberOfReports: 0,
+        } as unknown as Parameters<typeof buildModqueueMessage>[0]);
+
+        expect(message.embed?.fields).toEqual(expect.arrayContaining([
+            {name: "Author", value: "[deleted]"},
+        ]));
+    });
+
+    it("omits subreddit and author fields when the item does not carry them", () => {
+        const message = buildModqueueMessage({
+            id: "post123",
+            permalink: "/r/test/comments/post123/example",
+            userReportReasons: ["spam"],
+            modReportReasons: [],
+            numberOfReports: 1,
+        } as unknown as Parameters<typeof buildModqueueMessage>[0]);
+
+        const names = (message.embed?.fields ?? []).map((field) => field.name);
+        expect(names).not.toContain("Subreddit");
+        expect(names).not.toContain("Author");
+        expect(message.embed?.fields).toEqual(expect.arrayContaining([
+            {name: "Link to content", value: "[View post](https://www.reddit.com/r/test/comments/post123/example)"},
+        ]));
+    });
+    it("labels the reported content link with the post title instead of the raw URL", () => {
+        const message = buildReportedMessage({
+            id: "post123",
+            subredditName: "Lil_SpazJoekp",
+            authorName: "alice",
+            title: "Test post pls ignore",
+            permalink: "/r/Lil_SpazJoekp/comments/1q9fdaq/test_post_pls_ignore/",
+            userReportReasons: ["Spam"],
+            modReportReasons: [],
+            numberOfReports: 1,
+        } as unknown as Parameters<typeof buildReportedMessage>[0], {reporter: "bob"});
+
+        expect(message.embed?.fields).toEqual(expect.arrayContaining([{
+            name: "Link to content",
+            value: "[Post: Test post pls ignore](https://www.reddit.com/r/Lil_SpazJoekp/comments/1q9fdaq/test_post_pls_ignore/)",
+        }]));
+    });
+
+    it("emits bare URLs in mod action fields rather than self-referential links", () => {
+        const message = buildModActionMessage({
+            type: "ModAction",
+            action: "removelink",
+            targetPermalink: "https://www.reddit.com/r/test/comments/abc/",
+        });
+
+        // Discord renders `[url](url)` as literal markdown; a bare URL auto-links.
+        expect(message.embed?.fields).toEqual(expect.arrayContaining([{
+            name: "Target Permalink",
+            value: "https://www.reddit.com/r/test/comments/abc/",
+        }]));
+    });
+    it("names the reporting moderator on a mod report", () => {
+        const message = buildReportedMessage({
+            id: "post123",
+            subredditName: "test",
+            authorName: "alice",
+            title: "A post",
+            permalink: "/r/test/comments/post123/a_post/",
+            userReportReasons: [],
+            modReports: [{reason: "Spam", author: "Lil_SpazJoekp"}],
+            numberOfReports: 1,
+        } as unknown as Parameters<typeof buildReportedMessage>[0], {});
+
+        expect(message.embed?.title).toBe("New Mod Report");
+        expect(message.embed?.fields).toEqual(expect.arrayContaining([
+            {name: "Reporter", value: "[u/Lil_SpazJoekp](https://www.reddit.com/user/Lil_SpazJoekp)"},
+            {name: "Report body", value: "Spam"},
+        ]));
+    });
+
+    it("lists each distinct reporting moderator once", () => {
+        const message = buildReportedMessage({
+            id: "post123",
+            permalink: "/r/test/comments/post123/a_post/",
+            title: "A post",
+            userReportReasons: [],
+            modReports: [
+                {reason: "Spam", author: "modone"},
+                {reason: "Rule 1", author: "modtwo"},
+                {reason: "Also spam", author: "modone"},
+            ],
+            numberOfReports: 3,
+        } as unknown as Parameters<typeof buildReportedMessage>[0], {});
+
+        const reporter = message.embed?.fields?.find((field) => field.name === "Reporter")?.value;
+        expect(reporter).toBe("[u/modone](https://www.reddit.com/user/modone), [u/modtwo](https://www.reddit.com/user/modtwo)");
+    });
+
+    it("leaves the reporter empty for anonymous user reports", () => {
+        const message = buildReportedMessage({
+            id: "post123",
+            permalink: "/r/test/comments/post123/a_post/",
+            title: "A post",
+            userReportReasons: ["Spam"],
+            modReports: [],
+            numberOfReports: 1,
+        } as unknown as Parameters<typeof buildReportedMessage>[0], {});
+
+        expect(message.embed?.fields?.map((field) => field.name)).not.toContain("Reporter");
+    });
+
+    it("attributes modqueue mod reports to the moderator who filed them", () => {
+        const message = buildModqueueMessage({
+            id: "post123",
+            permalink: "/r/test/comments/post123/a_post/",
+            title: "A post",
+            userReportReasons: [],
+            modReports: [{reason: "Rule 1", author: "modone"}],
+            numberOfReports: 1,
+        } as unknown as Parameters<typeof buildModqueueMessage>[0]);
+
+        expect(message.embed?.fields).toEqual(expect.arrayContaining([
+            {name: "Mod Reports", value: "[u/modone](https://www.reddit.com/user/modone) - Rule 1"},
+        ]));
+    });
+
+    it("falls back to the deprecated modReportReasons when modReports is absent", () => {
+        const message = buildModqueueMessage({
+            id: "post123",
+            permalink: "/r/test/comments/post123/a_post/",
+            title: "A post",
+            userReportReasons: [],
+            modReportReasons: ["Rule 1"],
+            numberOfReports: 1,
+        } as unknown as Parameters<typeof buildModqueueMessage>[0]);
+
+        expect(message.embed?.fields).toEqual(expect.arrayContaining([
+            {name: "Mod Reports", value: "Moderator - Rule 1"},
+        ]));
+    });
+
+    it.each([
+        ["appeals", "Appeals"],
+        ["inprogress", "In Progress"],
+        ["new", "New"],
+        ["archived", "Archived"],
+        ["joinrequests", "Join Requests"],
+        ["InProgress", "In Progress"],
+        ["some_new_state", "Some New State"],
+    ])("shows the modmail conversation state %s as %s", (conversationState, expected) => {
+        const message = buildModmailMessage({
+            messageAuthor: {name: "Lil_SpazTest"},
+            messageAuthorType: "ParticipatingAs_PARTICIPANT_USER",
+            conversationState,
+            conversationId: "ModmailConversation_3v8whd",
+            messageId: "ModmailMessage_5jtdmq",
+        });
+
+        expect(message.embed?.fields).toEqual(expect.arrayContaining([
+            {name: "Conversation State", value: expected},
+        ]));
+    });
+
+    it("omits the conversation state when the payload has none", () => {
+        const message = buildModmailMessage({messageAuthor: {name: "auser"}, messageId: "m1"});
+
+        expect(message.embed?.fields?.map((field) => field.name)).not.toContain("Conversation State");
     });
 });

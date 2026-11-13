@@ -1,6 +1,6 @@
 import type {RedditItem, RelayEmbedField, RelayMessage} from "../types.js";
 import {REDDIT_THING_ID_PREFIX_PATTERN} from "../constants.js";
-import {isCommentItem} from "../utils/items.js";
+import {isCommentItem, isPostItem} from "../utils/items.js";
 import {asRecord, getDateString, getNumber, getString, stringifyValue, type UnknownRecord} from "../utils/records.js";
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
@@ -12,6 +12,8 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
     minute: "2-digit",
     timeZoneName: "short",
 });
+
+const DELETED_AUTHOR_NAMES = new Set(["[deleted]", "[removed]"]);
 
 const REDDIT_ADMIN_MODERATOR_NAMES = new Set([
     "Anti-Evil Operations",
@@ -60,6 +62,7 @@ export function buildModmailMessage(event: unknown): RelayMessage {
         || getString(record, "messageAuthorType");
     const subject = getString(conversation, "subject") || getString(record, "subject");
     const title = getString(conversation, "title") || getString(record, "title") || subject;
+    const conversationState = getString(record, "conversationState") || getString(conversation, "state");
     const conversationId = getString(conversation, "id") || getString(record, "conversationId") || getString(record, "conversation_id");
     const messageId = getString(message, "id") || getString(record, "messageId") || getString(record, "message_id");
     const isFirstMessage = getBooleanish(record.isNew) || getBooleanish(record.isNewThread) || getNumber(conversation, "numMessages") <= 1;
@@ -69,9 +72,10 @@ export function buildModmailMessage(event: unknown): RelayMessage {
             title: isFirstMessage ? "New Modmail" : "Modmail Reply",
             fields: [
                 toEmbedField("Author Type", formatModmailAuthorType(authorType)),
-                toEmbedField("Author", formatModmailAuthor(authorName)),
+                toEmbedField("Author", formatAuthorLink(authorName)),
                 toEmbedField("Title", title),
                 toEmbedField("Subject", subject),
+                toEmbedField("Conversation State", formatConversationState(conversationState)),
                 toEmbedField("Message", formatModmailBody(body)),
                 toEmbedField("Link to Modmail Message", formatModmailLink(conversationId, messageId)),
                 toEmbedField(
@@ -93,8 +97,10 @@ export function buildModqueueMessage(item: RedditItem): RelayMessage {
         embed: {
             title: `New Modqueue ${itemType}`,
             fields: [
+                toEmbedField("Subreddit", formatSubredditLink(item.subredditName)),
                 toEmbedField("Item Type", itemType),
-                toEmbedField("Link to content", formatMaybeLink(redditUrl(item.permalink))),
+                toEmbedField("Author", formatAuthorLink(item.authorName)),
+                toEmbedField("Link to content", formatItemLink(item)),
                 toEmbedField("User Reports", formatUserReports(item)),
                 toEmbedField("Mod Reports", formatModReports(item)),
             ].filter((field) => field.value.length > 0),
@@ -113,10 +119,10 @@ export function buildReportedMessage(item: RedditItem, event?: unknown): RelayMe
         embed: {
             title: modReports ? "New Mod Report" : "New Report",
             fields: [
-                toEmbedField("Link to content", formatMaybeLink(redditUrl(item.permalink))),
+                toEmbedField("Link to content", formatItemLink(item)),
                 toEmbedField("Report body", reportBody),
                 toEmbedField("Report count", getReportCount(item).toString()),
-                toEmbedField("Reporter", getString(record, "reporter") || getString(record, "reporterName")),
+                toEmbedField("Reporter", formatReporters(item, record)),
             ].filter((field) => field.value.length > 0),
             ...timestampFooter(),
             timestamp: new Date().toISOString(),
@@ -135,21 +141,16 @@ function toEmbedField(name: string, value: string, timestamp?: string): RelayEmb
     return field;
 }
 
-function formatMaybeLink(value: unknown) {
-    const stringValue = stringifyValue(value);
-    if (!stringValue) {
-        return "";
-    }
-    if (!URL.canParse(stringValue)) {
-        return stringValue;
-    }
-    return `[${stringValue}](${stringValue})`;
+// A bare URL auto-links in both Discord and Slack. Wrapping it as `[url](url)` does
+// not: Discord renders a self-referential masked link as literal markdown.
+function formatScalar(value: unknown) {
+    return stringifyValue(value);
 }
 
 function formatModActionValue(key: string, value: unknown) {
     const record = asRecord(value);
     if (Object.keys(record).length === 0) {
-        return isDateKey(key) ? formatDateValue(value) : formatMaybeLink(value);
+        return isDateKey(key) ? formatDateValue(value) : formatScalar(value);
     }
     if (!hasMeaningfulValue(record)) {
         return "";
@@ -191,12 +192,56 @@ function formatUser(record: UnknownRecord) {
     return formatMarkdownLink(`u/${name}`, getString(record, "url") || `https://www.reddit.com/user/${name}`);
 }
 
-function formatModmailAuthor(name: string) {
-    const username = name.trim().replace(/^u\//i, "");
+function formatAuthorLink(name: string | undefined) {
+    const username = (name || "").trim().replace(/^u\//i, "");
     if (!username) {
         return "";
     }
+    // Deleted/removed authors have no profile to link to.
+    if (DELETED_AUTHOR_NAMES.has(username.toLowerCase())) {
+        return username;
+    }
     return formatMarkdownLink(`u/${username}`, `https://www.reddit.com/user/${encodeURIComponent(username)}`);
+}
+
+function formatSubredditLink(name: string | undefined) {
+    const subreddit = (name || "").trim().replace(/^\/?r\//i, "");
+    if (!subreddit) {
+        return "";
+    }
+    return formatMarkdownLink(`r/${subreddit}`, `https://www.reddit.com/r/${encodeURIComponent(subreddit)}`);
+}
+
+// A bare URL as its own link label is unreadable in a feed that aggregates several
+// subreddits, so label the link with the post title (or the comment's opening words).
+function formatItemLink(item: RedditItem) {
+    const url = redditUrl(item.permalink);
+    const kind = isPostItem(item) ? "Post" : "Comment";
+    const label = toLinkLabel(isPostItem(item) ? item.title : item.body);
+    return formatMarkdownLink(label ? `${kind}: ${label}` : `View ${kind.toLowerCase()}`, url);
+}
+
+function toLinkLabel(value: string | undefined, maxLength = 80) {
+    const text = (value || "")
+        .replace(/\s+/g, " ")
+        .replace(/[[\]]/g, "")   // brackets would terminate the markdown label early
+        .trim();
+    return text.length > maxLength ? `${text.slice(0, maxLength - 1)}\u2026` : text;
+}
+
+// Reddit runs some state names together, so they need an explicit label.
+const CONVERSATION_STATE_LABELS = new Map([
+    ["inprogress", "In Progress"],
+    ["joinrequests", "Join Requests"],
+]);
+
+function formatConversationState(value: string) {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) {
+        return "";
+    }
+    return CONVERSATION_STATE_LABELS.get(normalized)
+        ?? normalized.replace(/[_-]+/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
 function formatModmailAuthorType(value: string) {
@@ -325,7 +370,7 @@ function formatRecordSummary(record: UnknownRecord) {
     return Object.entries(record)
         .filter(([, value]) => isMeaningfulScalar(value))
         .slice(0, 4)
-        .map(([key, value]) => `${labelize(key)}: ${isDateKey(key) ? formatDateValue(value) : formatMaybeLink(value)}`)
+        .map(([key, value]) => `${labelize(key)}: ${isDateKey(key) ? formatDateValue(value) : formatScalar(value)}`)
         .join("\n");
 }
 
@@ -410,6 +455,16 @@ function labelize(key: string) {
         .replace(/^./, (char) => char.toUpperCase());
 }
 
+// PostReport/CommentReport triggers carry only {post|comment, subreddit, reason} — no
+// reporter — and user reports are anonymous, so only moderators can be named.
+function formatReporters(item: RedditItem, record: UnknownRecord) {
+    const moderators = [...new Set(getModReports(item).map((report) => report.author).filter(Boolean))];
+    if (moderators.length > 0) {
+        return moderators.map((name) => formatAuthorLink(name)).join(", ");
+    }
+    return getString(record, "reporter") || getString(record, "reporterName");
+}
+
 function formatUserReports(item: RedditItem) {
     return getReportReasons(item, "user")
         .map((reason) => `${getReportCount(item)} - ${reason}`)
@@ -417,15 +472,48 @@ function formatUserReports(item: RedditItem) {
 }
 
 function formatModReports(item: RedditItem) {
-    return getReportReasons(item, "mod")
-        .map((reason) => `Moderator - ${reason}`)
+    return getModReports(item)
+        .map(({author, reason}) => `${author ? formatAuthorLink(author) : "Moderator"} - ${reason}`)
         .join("\n");
 }
 
-export function getReportReasons(item: RedditItem, type: "mod" | "user") {
+export type ModeratorReport = {
+    reason: string;
+    /** Username without the u/ prefix; empty when the source did not carry one. */
+    author: string;
+};
+
+/**
+ * Devvit deprecated `modReportReasons` because it drops the reporting moderator.
+ * Prefer `modReports`, falling back to the old field when it is all that is present.
+ */
+export function getModReports(item: RedditItem): ModeratorReport[] {
     const record = asRecord(item);
-    const reportKey = type === "mod" ? "modReportReasons" : "userReportReasons";
-    const rawReports = record[reportKey];
+    const structured = record.modReports;
+    if (Array.isArray(structured)) {
+        return structured
+            .map((report) => {
+                const reportRecord = asRecord(report);
+                return {
+                    reason: getString(reportRecord, "reason") || stringifyValue(report),
+                    author: getString(reportRecord, "author"),
+                };
+            })
+            .filter((report) => report.reason.length > 0);
+    }
+    const legacy = record.modReportReasons;
+    return Array.isArray(legacy)
+        ? legacy
+            .map((report) => ({reason: stringifyValue(report), author: ""}))
+            .filter((report) => report.reason.length > 0)
+        : [];
+}
+
+export function getReportReasons(item: RedditItem, type: "mod" | "user") {
+    if (type === "mod") {
+        return getModReports(item).map((report) => report.reason);
+    }
+    const rawReports = asRecord(item).userReportReasons;
     return Array.isArray(rawReports)
         ? rawReports.map((report) => stringifyValue(report)).filter(Boolean)
         : [];

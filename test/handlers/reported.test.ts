@@ -123,4 +123,35 @@ describe("reported content triggers", () => {
 
         expect(relayToDestinations).not.toHaveBeenCalled();
     });
+    it("does not relay a report about an author on the reported-only ignore list", async () => {
+        settingValues["reported-ignore-usernames"] = "alice";
+
+        await handleReportedTrigger(reportEvent());
+
+        expect(relayToDestinations).not.toHaveBeenCalled();
+    });
+
+    it("does not apply another bucket's ignore list to reports", async () => {
+        settingValues["modqueue-ignore-usernames"] = "alice";
+
+        await handleReportedTrigger(reportEvent());
+
+        expect(relayToDestinations).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not relay a report about a globally ignored author", async () => {
+        settingValues["global-ignore-usernames"] = "alice";
+
+        await handleReportedTrigger(reportEvent());
+
+        expect(relayToDestinations).not.toHaveBeenCalled();
+    });
+
+    it("still relays a report about an author that is not ignored", async () => {
+        settingValues["global-ignore-usernames"] = "someone-else";
+
+        await handleReportedTrigger(reportEvent());
+
+        expect(relayToDestinations).toHaveBeenCalledTimes(1);
+    });
 });

@@ -25,8 +25,8 @@ The bold names below match the labels displayed in the app settings. Settings ar
 
 - **Webhook Destinations**: Configure up to six Discord or Slack webhook destinations and select the events sent to each
   one.
-    - **Destination 1**, **Destination 2**, **Destination 3**, **Destination 4**, **Destination 5**, and
-      **Destination 6** each contain:
+    - **Destination 1**, **Destination 2**, **Destination 3**, **Destination 4**, **Destination 5**, and **Destination
+      6** each contain:
         - **Enabled**: Turns the destination slot on or off without deleting its configuration.
         - **Webhook URL**: Optional Discord or Slack incoming webhook URL. Empty slots are ignored. Slack URLs beginning
           with `https://hooks.slack.com/services/` receive Slack payloads; other URLs receive Discord payloads.
@@ -35,6 +35,12 @@ The bold names below match the labels displayed in the app settings. Settings ar
     - **Legacy Unmoderated Destination**: Backward-compatible fallback for unmoderated items when no enabled numbered
       destination matches the item.
         - **Webhook URL**: Optional legacy webhook used only for that fallback.
+- **Global Filters**: Applied to every alert type before any per-bucket filter runs.
+    - **Ignore Username(s)/Moderators for All Alerts**: Comma-separated usernames whose content is never forwarded, for
+      every alert type (unmoderated, modlog, modmail, modqueue, and reported). `u/` and `/u/` prefixes are accepted and
+      matching is case-insensitive. Use `m` to ignore all moderators, confirmed against the subreddit's moderator list.
+      `m` is not applied to modlog alerts, because every mod action has a moderator and the token would silence the
+      whole modlog; named usernames still apply there.
 - **Unmoderated Relay**: Control how unmoderated posts and comments are selected and relayed.
     - **Relay Behavior**: Choose when eligible content is processed.
         - **Enabled**: Turns unmoderated post and comment forwarding on or off.
@@ -57,7 +63,8 @@ The bold names below match the labels displayed in the app settings. Settings ar
         - **Only Approved Authors**: Requires the author to be in the subreddit's approved-user list.
     - **Excluded Content**: Matching any configured username, flair text, flair template ID, or author-status exclusion
       blocks an item even when an inclusion filter matches.
-        - **Ignore Username(s)/Moderators**: Comma-separated usernames without `u/`; use `m` for all moderators.
+        - **Ignore Username(s)/Moderators**: Additional usernames, merged with **Ignore Username(s)/Moderators for All
+          Alerts**, whose posts and comments are never relayed. Use `m` for all moderators.
         - **Ignore User Flair Text**: Comma-separated case-insensitive exact user-flair exclusions.
         - **Ignore User Flair Template ID**: Comma-separated template ID exclusions.
         - **Ignore Post Flair Text**: Comma-separated case-insensitive exact post-flair exclusions; applies only to
@@ -81,6 +88,9 @@ The bold names below match the labels displayed in the app settings. Settings ar
 - **Modmail Relay**: Forward modmail messages. Modmail actions are not forwarded.
     - **Enabled**: Turns modmail forwarding on or off.
     - **Forward Scenario**: Select `Only New Threads`, `All Non-Mod Replies`, or `All Messages`.
+    - **Ignore Modmail Username(s)/Moderators**: Additional usernames, merged with **Ignore Username(s)/Moderators for
+      All Alerts**, whose modmail is never forwarded. Same syntax as that setting, and it applies to every forward
+      scenario.
 - **Modqueue Relay**: Scan the full modqueue once per minute. Every configured filter category must pass; within a
   comma-separated keyword field, matching any case-insensitive substring passes that field.
     - **Enabled**: Turns scheduled modqueue scans on or off.
@@ -90,20 +100,27 @@ The bold names below match the labels displayed in the app settings. Settings ar
     - **Maximum Age Minutes**: Oldest allowed item age; `0` disables this maximum.
     - **Report Contains**: Comma-separated case-insensitive substrings matched against report reasons.
     - **Post/Comment Body or Title Contains**: Comma-separated case-insensitive substrings matched against item text.
+    - **Ignore Modqueue Username(s)/Moderators**: Additional usernames, merged with **Ignore Username(s)/Moderators
+      for All Alerts**, whose modqueue items are never forwarded. Use `m` to ignore all moderators.
     - **Only Forward Mod Reported Items**: Requires at least one moderator report.
 - **Reported Content Relay**: Forward post and comment report events as they arrive.
     - **Enabled**: Turns reported-content forwarding on or off.
     - **Report Type**: Select `All`, `Mod Report Only`, or `User Reports Only`.
     - **Minimum Report Count**: Required total report count; `0` disables this minimum.
+    - **Ignore Reported Username(s)/Moderators**: Additional usernames, merged with **Ignore Username(s)/Moderators
+      for All Alerts**, whose reported content is never forwarded. Use `m` to ignore all moderators.
     - **Mod Reports Bypass Minimum Count**: Lets a moderator report bypass only the minimum-count requirement.
 - **Modlog Relay**: Forward moderation-action events.
     - **Enabled**: Turns modlog forwarding on or off.
+    - **Ignore Modlog Username(s)/Moderators**: Moderators whose actions are never forwarded, merged with **Ignore
+      Username(s)/Moderators for All Alerts**. The `m`token is not applied here, because every mod action has a
+      moderator.
     - **Actions to Forward**: Select `All` or specific moderation actions.
 
 ## Development
 
-Run `npm test` to execute the test suite, or `npm run test:coverage` to collect coverage for all TypeScript source files,
-including files without tests. Coverage is printed in the terminal and saved to `coverage/index.html` (HTML) and
+Run `npm test` to execute the test suite, or `npm run test:coverage` to collect coverage for all TypeScript source
+files, including files without tests. Coverage is printed in the terminal and saved to `coverage/index.html` (HTML) and
 `coverage/lcov.info` (LCOV). Generated reports are ignored by Git.
 
 ## Known Issues
@@ -117,6 +134,26 @@ If you have any feedback or suggestions for Discord Relay, file a bug report or 
 [GitHub page](https://github.com/LilSpazJoekp/discord-relay).
 
 ## Changes
+
+### 3.1.0
+
+- Added `Ignore Username(s)/Moderators for All Alerts`, a single ignore list applied to every alert type (unmoderated,
+  modlog, modmail, modqueue, and reported), plus a per-alert-type ignore list for each of those buckets that is merged
+  with the global one. The `m` token is not applied to modlog alerts, since every mod action has a moderator.
+- Modqueue messages now include the subreddit and the author as clickable links.
+- Fixed content links rendering as literal Markdown instead of clickable links in modqueue, reported, and modlog
+  messages. A link is now labeled with the post title (or the opening words of a comment) rather than repeating the URL
+  as its own label, and plain URLs in modlog fields are no longer wrapped in a self-referential link.
+- Mod reports now name the moderator who filed them in both reported and modqueue messages. The reporter was previously
+  read from a field the report triggers do not provide, so it was always omitted.
+- Fixed `All Non-Mod Replies` relaying moderator replies, including hidden ones. The modmail trigger reports the author
+  type as the enum constant name, such as `ParticipatingAs_MODERATOR`, rather than the documented bare`moderator`, so no
+  reply was ever recognized as coming from a moderator.
+- Modmail messages now include the conversation state, so `Appeals`, `Join Requests` and `Filtered` threads are
+  identifiable at a glance.
+- Fixed `Only New Threads` forwarding nothing at all. The modmail trigger carries no field marking a message as the
+  start of a conversation, so the conversation is now looked up for its message count. The lookup runs only for this
+  scenario, only when a destination is configured and is reused when building the relay.
 
 ### 3.0.0
 

@@ -209,4 +209,30 @@ describe("modqueue scanner", () => {
         await expect(scanModqueue()).rejects.toThrow("Webhook unavailable");
         expect(setRedisValues).not.toHaveBeenCalled();
     });
+    it("does not forward a modqueue item from an author on the modqueue-only ignore list", async () => {
+        settingValues["modqueue-ignore-usernames"] = "alice";
+        getAllItems.mockResolvedValue([makePost({numberOfReports: 1, userReportReasons: ["Spam"]})]);
+
+        await scanModqueue();
+
+        expect(relay).not.toHaveBeenCalled();
+    });
+
+    it("does not forward a modqueue item from a globally ignored author", async () => {
+        settingValues["global-ignore-usernames"] = "alice";
+        getAllItems.mockResolvedValue([makePost({numberOfReports: 1, userReportReasons: ["Spam"]})]);
+
+        await scanModqueue();
+
+        expect(relay).not.toHaveBeenCalled();
+    });
+
+    it("still forwards a modqueue item from an author that is not ignored", async () => {
+        settingValues["global-ignore-usernames"] = "someone-else";
+        getAllItems.mockResolvedValue([makePost({numberOfReports: 1, userReportReasons: ["Spam"]})]);
+
+        await scanModqueue();
+
+        expect(relay).toHaveBeenCalledTimes(1);
+    });
 });

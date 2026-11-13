@@ -4,6 +4,7 @@ import type {OnModActionRequest} from "@devvit/web/shared";
 import type {RedditItem} from "../types.js";
 import {getDestinations, isBucketEnabled} from "../services/destinations.js";
 import {buildModActionMessage} from "../services/messages.js";
+import {isIgnoredAuthor} from "../services/ignoredAuthors.js";
 import {relayToDestinations, scheduleRelay} from "../services/relay.js";
 import {getUniqueId} from "../utils/items.js";
 import {toCommentId, toPostId} from "../utils/redditIds.js";
@@ -50,6 +51,15 @@ export async function handleModActionTrigger(event: OnModActionRequest) {
 
 async function handleModlogRelay(event: OnModActionRequest) {
     if (!await isBucketEnabled("modlog")) {
+        return;
+    }
+
+    // `m` is deliberately not honoured here: every mod action has a moderator, so the
+    // token would silence the entire modlog. Named usernames still apply.
+    if (await isIgnoredAuthor(event.moderator?.name, {
+        additionalSettingName: "modlog-ignore-usernames",
+        matchModeratorToken: false,
+    })) {
         return;
     }
 

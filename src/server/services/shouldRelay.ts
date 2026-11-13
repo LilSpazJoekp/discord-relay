@@ -1,6 +1,7 @@
 import {reddit, redis, type Subreddit} from "@devvit/web/server";
 
 import type {FlairLike, ItemType, RedditItem} from "../types.js";
+import {isIgnoredAuthor} from "./ignoredAuthors.js";
 import {matchesFlair, matchesFlairTemplateId, normalize, splitCsv} from "../utils/flair.js";
 import {getUniqueId, isPostItem} from "../utils/items.js";
 import {toUserId} from "../utils/redditIds.js";
@@ -21,6 +22,11 @@ export async function shouldRelay(
         postFlair?: FlairLike | undefined;
     }): Promise<boolean> {
     console.log(`Checking if we should relay event (${getUniqueId(item)})`);
+
+    if (await isIgnoredAuthor(authorName, {additionalSettingName: "ignore-specific-username"})) {
+        console.log("Should relay event (ignored author): false");
+        return false;
+    }
 
     const subreddit: Subreddit = await reddit.getCurrentSubreddit();
 
@@ -68,21 +74,6 @@ export async function shouldRelay(
             const approvedUsers = await subreddit.getApprovedUsers({username: authorName}).all();
             if (!approvedUsers.map((approvedUser) => approvedUser.username.toLowerCase()).includes(authorName.toLowerCase())) {
                 console.log("Should relay event (approvedUsersOnly): false");
-                return false;
-            }
-        }
-        const ignoreUsername = await getStringSetting("ignore-specific-username");
-        if (ignoreUsername) {
-            let shouldRelayUserIgnore: boolean;
-            const ignoreUsernames = splitCsv(ignoreUsername);
-            shouldRelayUserIgnore = !ignoreUsernames.includes(authorName.toLowerCase());
-            if (shouldRelayUserIgnore && ignoreUsernames.includes("m")) {
-                shouldRelayUserIgnore = (
-                    await subreddit.getModerators({username: authorName}).all()
-                ).length === 0;
-            }
-            if (!shouldRelayUserIgnore) {
-                console.log(`Should relay event (shouldRelayUserIgnore): ${shouldRelayUserIgnore}`);
                 return false;
             }
         }

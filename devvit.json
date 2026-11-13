@@ -387,6 +387,18 @@
           }
         }
       },
+      "global-filters": {
+        "type": "group",
+        "label": "Global Filters",
+        "helpText": "Applied to every alert type before any per-bucket filter runs.",
+        "fields": {
+          "global-ignore-usernames": {
+            "type": "string",
+            "label": "Ignore Username(s)/Moderators for All Alerts",
+            "helpText": "Comma-separated usernames whose content is never forwarded, for every alert type. u/ and /u/ prefixes are accepted and matching is case-insensitive. Use m to ignore all moderators; m is not applied to modlog alerts, because every mod action has a moderator and the token would silence the whole modlog."
+          }
+        }
+      },
       "unmoderated-relay": {
         "type": "group",
         "label": "Unmoderated Relay",
@@ -654,6 +666,11 @@
                 "value": "all-messages"
               }
             ]
+          },
+          "modmail-ignore-usernames": {
+            "type": "string",
+            "label": "Ignore Modmail Username(s)/Moderators",
+            "helpText": "Comma-separated usernames without u/ whose modmail is never forwarded; use m to ignore all moderators. Applies to every forward scenario."
           }
         }
       },
@@ -711,6 +728,11 @@
             "label": "Post/Comment Body or Title Contains",
             "helpText": "Comma-separated case-insensitive keywords."
           },
+          "modqueue-ignore-usernames": {
+            "type": "string",
+            "label": "Ignore Modqueue Username(s)/Moderators",
+            "helpText": "Comma-separated usernames, merged with the global ignore list. u/ and /u/ prefixes are accepted and matching is case-insensitive. Use m to ignore all moderators."
+          },
           "modqueue-only-mod-reported": {
             "type": "boolean",
             "label": "Only Forward Mod Reported Items",
@@ -752,6 +774,11 @@
             "label": "Minimum Report Count",
             "defaultValue": 0
           },
+          "reported-ignore-usernames": {
+            "type": "string",
+            "label": "Ignore Reported Username(s)/Moderators",
+            "helpText": "Comma-separated usernames, merged with the global ignore list. u/ and /u/ prefixes are accepted and matching is case-insensitive. Use m to ignore all moderators."
+          },
           "reported-mod-reports-bypass-minimum": {
             "type": "boolean",
             "label": "Mod Reports Bypass Minimum Count",
@@ -767,6 +794,11 @@
             "type": "boolean",
             "label": "Enabled",
             "defaultValue": false
+          },
+          "modlog-ignore-usernames": {
+            "type": "string",
+            "label": "Ignore Modlog Username(s)/Moderators",
+            "helpText": "Usernames of moderators whose actions are never forwarded. Comma-separated usernames, merged with the global ignore list. u/ and /u/ prefixes are accepted and matching is case-insensitive. The m token is not applied here, because every mod action has a moderator."
           },
           "modlog-actions": {
             "type": "multiSelect",
