@@ -135,6 +135,10 @@ If you have any feedback or suggestions for Discord Relay, file a bug report or 
 
 ## Changes
 
+### 3.1.1
+
+- Fixed the app icon's border.
+
 ### 3.1.0
 
 - Added `Ignore Username(s)/Moderators for All Alerts`, a single ignore list applied to every alert type (unmoderated,
