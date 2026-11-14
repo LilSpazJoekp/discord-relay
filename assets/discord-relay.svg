@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">Discord Relay</title>
+  <desc id="description">Reddit on the left and Discord on the right meet at a lightning-bolt split, with a flowing arrow relaying from Reddit to Discord.</desc>
+
+  <defs>
+    <!-- Original geometry from Discord-Symbol-Blurple.svg. -->
+    <path id="discord-symbol" d="M81.15,0c-1.2376,2.1973-2.3489,4.4704-3.3591,6.794-9.5975-1.4396-19.3718-1.4396-28.9945,0-.985-2.3236-2.1216-4.5967-3.3591-6.794-9.0166,1.5407-17.8059,4.2431-26.1405,8.0568C2.779,32.5304-1.6914,56.3725.5312,79.8863c9.6732,7.1476,20.5083,12.603,32.0505,16.0884,2.6014-3.4854,4.8998-7.1981,6.8698-11.0623-3.738-1.3891-7.3497-3.1318-10.8098-5.1523.9092-.6567,1.7932-1.3386,2.6519-1.9953,20.281,9.547,43.7696,9.547,64.0758,0,.8587.7072,1.7427,1.3891,2.6519,1.9953-3.4601,2.0457-7.0718,3.7632-10.835,5.1776,1.97,3.8642,4.2683,7.5769,6.8698,11.0623,11.5419-3.4854,22.3769-8.9156,32.0509-16.0631,2.626-27.2771-4.496-50.9172-18.817-71.8548C98.9811,4.2684,90.1918,1.5659,81.1752.0505l-.0252-.0505ZM42.2802,65.4144c-6.2383,0-11.4159-5.6575-11.4159-12.6535s4.9755-12.6788,11.3907-12.6788,11.5169,5.708,11.4159,12.6788c-.101,6.9708-5.026,12.6535-11.3907,12.6535ZM84.3576,65.4144c-6.2637,0-11.3907-5.6575-11.3907-12.6535s4.9755-12.6788,11.3907-12.6788,11.4917,5.708,11.3906,12.6788c-.101,6.9708-5.026,12.6535-11.3906,12.6535Z"/>
+
+    <!-- Original geometry from Reddit_Icon_1Color_Silhouette.svg. -->
+    <path id="reddit-symbol" d="m228.56,98.04c-6.85,0-13.16,2.31-18.2,6.19-13.72-8.49-31.04-13.83-49.99-14.54,0-.03,0-.05,0-.08,0-12.7,9.44-23.24,21.68-24.97,2.22,9.41,10.67,16.42,20.76,16.42,11.78,0,21.33-9.55,21.33-21.33s-9.55-21.33-21.33-21.33c-10.3,0-18.89,7.3-20.89,17.01-17.25,1.85-30.72,16.48-30.72,34.21,0,.04,0,.07,0,.11-18.76.79-35.89,6.13-49.49,14.56-5.05-3.91-11.39-6.24-18.27-6.24-16.51,0-29.89,13.38-29.89,29.89,0,11.98,7.04,22.3,17.21,27.07.99,34.7,38.8,62.61,85.31,62.61s84.37-27.94,85.31-62.67c10.09-4.8,17.07-15.09,17.07-27,0-16.51-13.38-29.89-29.89-29.89Z"/>
+
+    <clipPath id="left-half">
+      <path d="M0 0h364l-38 80-36 110h14l-58 96h32l-65 112v114H0Z"/>
+    </clipPath>
+    <clipPath id="right-half">
+      <path d="M364 0h148v512H213V398l65-112h-33l58-96h-14l36-110Z"/>
+    </clipPath>
+    <linearGradient id="relay-gradient" x1="340" y1="230" x2="210" y2="230">
+      <stop offset="1" stop-color="#2DD4BF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- App tile -->
+  <rect width="512" height="512" fill="#0B1020"/>
+
+  <g id="app-mark" transform="translate(256 256) scale(1.15) translate(-256 -256)">
+    <!-- Two brand marks meet along a diagonal lightning-bolt split. -->
+    <g id="combined-brands">
+      <g clip-path="url(#left-half)" fill="#FF4500">
+        <use href="#reddit-symbol" transform="translate(15 73) scale(1.4)"/>
+      </g>
+      <g clip-path="url(#right-half)" fill="#5865F2">
+        <use href="#discord-symbol" transform="translate(88 158) scale(2.653)"/>
+      </g>
+      <path d="M326 80 290 190h14l-58 96h32l-65 112v34" fill="none" stroke="#0B1020" stroke-width="10" stroke-linejoin="bevel"/>
+    </g>
+
+    <!-- One-way signal stream: Reddit (left) to Discord (right). -->
+    <g id="relay" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(532 32.5) scale(-1 1)">
+      <path d="M340 235c-35-25-80-25-120 0m11-37-19 42 45.21 9" stroke="#0B1020" stroke-width="26"/>
+      <path d="M340 235c-35-25-80-25-120 0m11-37-19 42 45.21 9" stroke="url(#relay-gradient)" stroke-width="12"/>
+    </g>
+  </g>
+</svg>
