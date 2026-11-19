@@ -221,7 +221,7 @@ function formatItemLink(item: RedditItem) {
     return formatMarkdownLink(label ? `${kind}: ${label}` : `View ${kind.toLowerCase()}`, url);
 }
 
-function toLinkLabel(value: string | undefined, maxLength = 80) {
+export function toLinkLabel(value: string | undefined, maxLength = 80) {
     const text = (value || "")
         .replace(/\s+/g, " ")
         .replace(/[[\]]/g, "")   // brackets would terminate the markdown label early
@@ -283,7 +283,7 @@ function stripHtml(value: string) {
     return decodeHtmlEntities(value.replace(/<[^>]+>/g, "").trim());
 }
 
-function decodeHtmlEntities(value: string) {
+export function decodeHtmlEntities(value: string) {
     return value.replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (entity, raw: string) => {
         const numericValue = raw.startsWith("#x")
             ? Number.parseInt(raw.slice(2), 16)
@@ -398,7 +398,7 @@ function formatMarkdownLink(label: string, url: string) {
     return `[${label}](${url})`;
 }
 
-function formatDateValue(value: unknown) {
+export function formatDateValue(value: unknown) {
     const date = parseDate(value);
     return date ? DATE_FORMATTER.format(date) : stringifyValue(value);
 }
@@ -442,7 +442,7 @@ function isDateKey(key: string) {
         || normalized.includes("actionedat");
 }
 
-function redditUrl(permalink: string) {
+export function redditUrl(permalink: string) {
     return new URL(permalink, "https://www.reddit.com").toString();
 }
 

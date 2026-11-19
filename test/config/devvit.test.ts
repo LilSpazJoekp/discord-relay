@@ -23,7 +23,7 @@ describe("devvit configuration", () => {
             .split("## Configuration\n", 2)[1]
             ?.split("\n## Known Issues", 1)[0] ?? "";
         const documentedLabels = [...configurationSection.matchAll(/\*\*([^*]+)\*\*/g)]
-            .map((match) => match[1]);
+            .map((match) => match[1].replace(/\s+/g, " ").trim());
         const settingLabels = getSettingLabels(config.settings.subreddit);
 
         expect([...new Set(documentedLabels)].sort()).toEqual([...new Set(settingLabels)].sort());

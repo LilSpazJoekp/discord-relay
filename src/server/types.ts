@@ -42,9 +42,24 @@ export type RelayEmbed = {
     timestamp?: string;
 };
 
+// Provider-formatted mentions, resolved per destination when the relay is sent or scheduled.
+export type RelayMentions = JsonObject & {
+    discord?: string[];
+    slack?: string[];
+};
+
+// Prebuilt Slack Block Kit content. Sent to Slack in place of `content`/`embed`;
+// Discord ignores it.
+export type SlackMessage = JsonObject & {
+    text: string;
+    blocks: JsonObject[];
+};
+
 export type RelayMessage = JsonObject & {
     content?: string;
     embed?: RelayEmbed;
+    mentions?: RelayMentions;
+    slack?: SlackMessage;
 };
 
 export type RelayJobData = JsonObject & {

@@ -65,4 +65,23 @@ describe("settings routes", () => {
             expect(response.status).toBe(200);
         }
     });
+
+    it.each([
+        ["discord", "123456, here", true],
+        ["discord", "not-a-role", false],
+        ["slack", "S0ABC1, @U0ABC1, channel", true],
+        ["slack", "#general", false],
+    ])("validates %s mentions %j", async (provider, value, valid) => {
+        const response = await createTestApp().request(`/internal/settings/validate-${provider}-mentions`, {
+            method: "POST",
+            body: JSON.stringify({value}),
+            headers: {"content-type": "application/json"},
+        });
+
+        const body = await response.json();
+        expect(body.success).toBe(valid);
+        if (!valid) {
+            expect(body.error).toContain(value);
+        }
+    });
 });

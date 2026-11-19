@@ -1,5 +1,6 @@
 import type {DestinationEvent, ItemType, RelayBucket, RelayDestination} from "../types.js";
 import {getBooleanSetting, getStringArraySetting, getStringSetting} from "../utils/settings.js";
+import {LEGACY_DESTINATION_ID} from "./mentions.js";
 
 const DESTINATION_COUNT = 6;
 
@@ -34,7 +35,7 @@ export async function getDestinations(bucket: RelayBucket, itemType?: ItemType):
     const legacyWebhookUrl = await getStringSetting("webhook-url");
     return legacyWebhookUrl
         ? [{
-            id: "legacy-webhook-url",
+            id: LEGACY_DESTINATION_ID,
             webhookUrl: legacyWebhookUrl,
             events: ["unmoderated"],
         }]

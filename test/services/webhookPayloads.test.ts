@@ -102,6 +102,52 @@ describe("webhook payloads", () => {
         });
     });
 
+    it("sends prebuilt Slack blocks in place of content for Slack and ignores them for Discord", () => {
+        const message = {
+            content: "New post!",
+            slack: {text: "New Text Post", blocks: [{type: "header", text: {type: "plain_text", text: "New Text Post"}}]},
+        };
+
+        expect(buildWebhookPayload("https://hooks.slack.com/services/T/B/C", message)).toEqual({
+            text: "New Text Post",
+            attachments: [{
+                color: "#FF4500",
+                blocks: [{type: "header", text: {type: "plain_text", text: "New Text Post"}}],
+            }],
+        });
+        expect(buildWebhookPayload("https://discord.com/api/webhooks/1/t", message)).toEqual({
+            content: "New post!",
+            allowed_mentions: {parse: ["roles", "users", "everyone"]},
+        });
+    });
+
+    it("adds each provider's mentions outside the embed", () => {
+        const message = {
+            embed: {title: "New Report"},
+            mentions: {discord: ["<@&123456>"], slack: ["<!subteam^S123>", "<!here>"]},
+        };
+
+        expect(buildWebhookPayload("https://discord.com/api/webhooks/1/t", message)).toMatchObject({
+            content: "<@&123456>",
+            embeds: [{title: "New Report"}],
+        });
+        expect(buildWebhookPayload("https://hooks.slack.com/services/T/B/C", message)).toEqual({
+            text: "<!subteam^S123> <!here> New Report",
+            blocks: [{type: "section", text: {type: "mrkdwn", text: "<!subteam^S123> <!here>"}}],
+            attachments: [{
+                color: "#FF4500",
+                blocks: [{type: "header", text: {type: "plain_text", text: "New Report"}}],
+            }],
+        });
+    });
+
+    it("puts Discord mentions on a line after the message content", () => {
+        expect(buildWebhookPayload("https://discord.com/api/webhooks/1/t", {
+            content: "New [post](https://www.reddit.com/comments/post1)!",
+            mentions: {discord: ["<@&1>", "@here"]},
+        })).toMatchObject({content: "New [post](https://www.reddit.com/comments/post1)!\n<@&1> @here"});
+    });
+
     it("builds Slack embed payloads", () => {
         expect(buildWebhookPayload("https://hooks.slack.com/services/T/B/C", {
             embed: {
@@ -119,43 +165,60 @@ describe("webhook payloads", () => {
             },
         })).toEqual({
             text: "Mod Action",
-            blocks: [
-                {
-                    type: "header",
-                    text: {
-                        type: "plain_text",
-                        text: "Mod Action",
+            attachments: [{
+                color: "#FF4500",
+                blocks: [
+                    {
+                        type: "header",
+                        text: {
+                            type: "plain_text",
+                            text: "Mod Action",
+                        },
                     },
-                },
-                {
-                    type: "section",
-                    text: {
-                        type: "mrkdwn",
-                        text: "*Action*\nbanuser",
+                    {
+                        type: "section",
+                        text: {
+                            type: "mrkdwn",
+                            text: "*Action*\nbanuser",
+                        },
                     },
-                },
-                {
-                    type: "section",
-                    text: {
-                        type: "mrkdwn",
-                        text: "*Actioned At*\n<!date^1767225600^{date_short_pretty} at {time}|Jan 1, 2026, 12:00 AM UTC>",
+                    {
+                        type: "section",
+                        text: {
+                            type: "mrkdwn",
+                            text: "*Actioned At*\n<!date^1767225600^{date_short_pretty} at {time}|Jan 1, 2026, 12:00 AM UTC>",
+                        },
                     },
-                },
-                {
-                    type: "section",
-                    text: {
-                        type: "mrkdwn",
-                        text: "*Subreddit*\n<https://www.reddit.com/r/test|r/test>",
+                    {
+                        type: "section",
+                        text: {
+                            type: "mrkdwn",
+                            text: "*Subreddit*\n<https://www.reddit.com/r/test|r/test>",
+                        },
                     },
-                },
-                {
-                    type: "context",
-                    elements: [{
-                        type: "mrkdwn",
-                        text: "<!date^1767225600^{date_short_pretty} at {time_secs}|2026-01-01T00:00:00.000Z>",
-                    }],
-                },
-            ],
+                    {
+                        type: "context",
+                        elements: [{
+                            type: "mrkdwn",
+                            text: "<!date^1767225600^{date_short_pretty} at {time_secs}|2026-01-01T00:00:00.000Z>",
+                        }],
+                    },
+                ],
+            }],
+        });
+    });
+
+    it("keeps Slack message content above the embed card", () => {
+        expect(buildWebhookPayload("https://hooks.slack.com/services/T/B/C", {
+            content: "Heads up",
+            embed: {title: "New Report"},
+        })).toEqual({
+            text: "Heads up",
+            blocks: [{type: "section", text: {type: "mrkdwn", text: "Heads up"}}],
+            attachments: [{
+                color: "#FF4500",
+                blocks: [{type: "header", text: {type: "plain_text", text: "New Report"}}],
+            }],
         });
     });
 });

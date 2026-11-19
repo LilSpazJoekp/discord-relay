@@ -4,6 +4,8 @@ import type {RelayEmbed, RelayEmbedField, RelayMessage} from "../types.js";
 
 type WebhookProvider = "discord" | "slack";
 
+const SLACK_EMBED_COLOR = "#FF4500";
+
 export function detectWebhookProvider(webhookUrl: string): WebhookProvider {
     try {
         const host = new URL(webhookUrl).hostname.toLowerCase();
@@ -20,8 +22,12 @@ export function buildWebhookPayload(webhookUrl: string, message: RelayMessage): 
 }
 
 function buildDiscordPayload(message: RelayMessage): JsonObject {
+    const content = [
+        toDiscordMrkdwn(message.content || ""),
+        message.mentions?.discord?.join(" ") ?? "",
+    ].filter(Boolean).join("\n");
     const payload: Record<string, unknown> = {
-        content: toDiscordMrkdwn(message.content || ""),
+        content,
         allowed_mentions: {
             parse: [
                 "roles",
@@ -46,21 +52,39 @@ function buildDiscordPayload(message: RelayMessage): JsonObject {
     return stripUndefined(payload) as JsonObject;
 }
 
+// Mentions only notify from the top-level message, never from inside an attachment, so
+// they sit above the card and lead the notification text.
 function buildSlackPayload(message: RelayMessage): JsonObject {
+    const mentions = message.mentions?.slack?.join(" ") ?? "";
+    const card = buildSlackCard(message);
+    const content = message.slack || !message.content ? "" : toSlackMrkdwn(message.content);
+    const lead = [content, mentions].filter(Boolean).join("\n");
+
+    return stripUndefined({
+        text: [mentions, content || card?.text].filter(Boolean).join(" "),
+        blocks: lead ? [sectionBlock(lead)] : undefined,
+        attachments: card
+            ? [{
+                color: SLACK_EMBED_COLOR,
+                blocks: card.blocks.slice(0, 50),
+            }]
+            : undefined,
+    }) as JsonObject;
+}
+
+// An attachment is Slack's equivalent of a Discord embed: its blocks render inside a card
+// with a colored side bar.
+function buildSlackCard(message: RelayMessage): {text: string; blocks: Record<string, unknown>[]} | undefined {
+    if (message.slack) {
+        return message.slack;
+    }
     if (!message.embed) {
-        const text = toSlackMrkdwn(message.content || "");
-        return stripUndefined({
-            text,
-            blocks: text ? [sectionBlock(text)] : undefined,
-        }) as JsonObject;
+        return undefined;
     }
 
     const blocks: Record<string, unknown>[] = [];
     if (message.embed.title) {
         blocks.push(headerBlock(message.embed.title));
-    }
-    if (message.content) {
-        blocks.push(sectionBlock(toSlackMrkdwn(message.content)));
     }
     if (message.embed.description) {
         blocks.push(sectionBlock(toSlackMrkdwn(message.embed.description)));
@@ -72,11 +96,7 @@ function buildSlackPayload(message: RelayMessage): JsonObject {
     if (context) {
         blocks.push(contextBlock(context));
     }
-
-    return stripUndefined({
-        text: toSlackMrkdwn(message.content || message.embed.title),
-        blocks: blocks.length > 0 ? blocks.slice(0, 50) : undefined,
-    }) as JsonObject;
+    return {text: escapeSlackText(message.embed.title), blocks};
 }
 
 function toDiscordField(field: RelayEmbedField) {
@@ -94,7 +114,7 @@ function buildDiscordFooter(embed: RelayEmbed) {
     return text ? {text} : undefined;
 }
 
-function sectionBlock(text: string) {
+export function sectionBlock(text: string) {
     return {
         type: "section",
         text: {
@@ -104,7 +124,7 @@ function sectionBlock(text: string) {
     };
 }
 
-function headerBlock(text: string) {
+export function headerBlock(text: string) {
     return {
         type: "header",
         text: {
@@ -114,7 +134,7 @@ function headerBlock(text: string) {
     };
 }
 
-function contextBlock(text: string) {
+export function contextBlock(text: string) {
     return {
         type: "context",
         elements: [{
@@ -161,7 +181,7 @@ function discordTimestamp(value: string) {
     return timestamp === undefined ? value : `<t:${timestamp}:F>`;
 }
 
-function slackTimestamp(value: string, fallback = value) {
+export function slackTimestamp(value: string, fallback = value) {
     const timestamp = epochSeconds(value);
     return timestamp === undefined
         ? escapeSlackText(fallback)
@@ -177,7 +197,7 @@ function toDiscordMrkdwn(value = "") {
     return value.replace(/\[([^\]]+)]\(<(https?:\/\/[^>]+)>\)/g, "[$1]($2)");
 }
 
-function toSlackMrkdwn(value = "") {
+export function toSlackMrkdwn(value = "") {
     const normalized = value.replace(/\*\*([^*]+)\*\*/g, "*$1*");
     const linkPattern = /\[([^\]]+)]\(<?(https?:\/\/[^)>]+)>?\)/g;
     let result = "";
@@ -191,19 +211,19 @@ function toSlackMrkdwn(value = "") {
     return result;
 }
 
-function escapeSlackText(value: string) {
+export function escapeSlackText(value: string) {
     return value
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 }
 
-function escapeSlackUrl(value: string) {
+export function escapeSlackUrl(value: string) {
     return value
         .replace(/>/g, "%3E")
         .replace(/\|/g, "%7C");
 }
 
-function truncate(value: string, maxLength: number) {
+export function truncate(value: string, maxLength: number) {
     return value.length > maxLength ? value.slice(0, maxLength - 3) + "..." : value;
 }

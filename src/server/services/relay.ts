@@ -1,11 +1,14 @@
-import {redis, scheduler, type User} from "@devvit/web/server";
+import {reddit, redis, scheduler, type Post, type User} from "@devvit/web/server";
 
 import {RELAY_SCHEDULED_JOB} from "../constants.js";
 import type {ItemType, RedditItem, RelayBucket, RelayDestination, RelayMessage} from "../types.js";
 import {getDestinations} from "./destinations.js";
-import {buildWebhookPayload} from "./webhookPayloads.js";
+import {getDestinationMentions} from "./mentions.js";
+import {buildUnmoderatedSlackMessage} from "./slackBlocks.js";
+import {buildWebhookPayload, detectWebhookProvider} from "./webhookPayloads.js";
 import {getUniqueId, isCommentItem, isRemoved} from "../utils/items.js";
-import {getBooleanSetting, getNumberSetting, getStringSetting} from "../utils/settings.js";
+import {toPostId} from "../utils/redditIds.js";
+import {getBooleanSetting, getNumberSetting} from "../utils/settings.js";
 
 export async function relayWebhook(
     trackingKey: string,
@@ -44,22 +47,21 @@ export async function scheduleRelay(item: RedditItem, approvalRetry: boolean) {
     const suppressItemEmbed = await getBooleanSetting("suppress-item-embed");
     const username = author?.username || item.authorName;
     const authorUrl = author?.url || `https://www.reddit.com/user/${username}`;
-    let message = `New [${itemType}](${suppressItemEmbed
+    const message = `New [${itemType}](${suppressItemEmbed
         ? "<"
         : ""}https://www.reddit.com${item.permalink}${suppressItemEmbed
         ? ">"
         : ""}) by [u/${username}](${suppressAuthorEmbed ? "<" : ""}${authorUrl}${suppressAuthorEmbed ? ">" : ""})!`;
-    if (await getBooleanSetting("ping-role")) {
-        const roleId = await getStringSetting("ping-role-id");
-        message = `${message}\n<@&${roleId}>`;
-    }
-    const data: RelayMessage = {
-        content: message,
-    };
     const destinations = await getDestinations(bucket, itemType);
     if (destinations.length === 0) {
         console.log(`No destinations configured for ${bucket} ${uniqueId}`);
         return;
+    }
+    const data: RelayMessage = {
+        content: message,
+    };
+    if (destinations.some((destination) => detectWebhookProvider(destination.webhookUrl) === "slack")) {
+        data.slack = buildUnmoderatedSlackMessage(item, username, await getParentPost(item));
     }
     if (delay === 0) {
         console.log(`Relaying event ${uniqueId}`);
@@ -89,7 +91,7 @@ export async function scheduleRelay(item: RedditItem, approvalRetry: boolean) {
                 data: {
                     bucket,
                     destinationId: destination.id,
-                    message: data,
+                    message: await withDestinationMentions(bucket, destination, data),
                     itemType,
                     itemId: item.id,
                     trackingKey,
@@ -126,7 +128,7 @@ export async function relayToDestinations(
             return;
         }
         console.log(`Relaying ${bucket} event ${trackingKey}`);
-        await relayWebhook(trackingKey, destination.webhookUrl, message);
+        await relayWebhook(trackingKey, destination.webhookUrl, await withDestinationMentions(bucket, destination, message));
         if (item) {
             await redis.hSet(item.id, {[`${bucket}:${destination.id}:relayed`]: "true"});
             if (itemType) {
@@ -134,6 +136,29 @@ export async function relayToDestinations(
             }
         }
     }));
+}
+
+async function withDestinationMentions(
+    bucket: RelayBucket,
+    destination: RelayDestination,
+    message: RelayMessage,
+): Promise<RelayMessage> {
+    const mentions = await getDestinationMentions(bucket, destination);
+    return mentions ? {...message, mentions} : message;
+}
+
+// A comment's title comes from its parent post. A failed lookup only costs the title,
+// so it must not stop the alert.
+async function getParentPost(item: RedditItem): Promise<Post | undefined> {
+    if (!isCommentItem(item)) {
+        return undefined;
+    }
+    try {
+        return await reddit.getPostById(toPostId(item.postId));
+    } catch (err) {
+        console.log(`Unable to load parent post ${item.postId} for ${item.id}: ${err instanceof Error ? err.message : String(err)}`);
+        return undefined;
+    }
 }
 
 function getTrackingKey(bucket: RelayBucket, destinationId: string, uniqueId: string) {

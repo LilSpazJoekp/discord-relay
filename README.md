@@ -23,8 +23,9 @@ URL fields are allowed and ignored, so unused destination slots do not need to b
 The bold names below match the labels displayed in the app settings. Settings are listed in the same group order as
 `devvit.json`.
 
-- **Webhook Destinations**: Configure up to six Discord or Slack webhook destinations and select the events sent to each
-  one.
+- **Webhook Destinations**: Configure up to six Discord or Slack webhook destinations, select the events sent to each
+  one, and choose who each one mentions. Mentions are placed outside the embed so they notify, and invalid entries are
+  rejected when the settings are saved.
     - **Destination 1**, **Destination 2**, **Destination 3**, **Destination 4**, **Destination 5**, and **Destination
       6** each contain:
         - **Enabled**: Turns the destination slot on or off without deleting its configuration.
@@ -32,9 +33,19 @@ The bold names below match the labels displayed in the app settings. Settings ar
           with `https://hooks.slack.com/services/` receive Slack payloads; other URLs receive Discord payloads.
         - **Event Types**: Select `All`, `Posts`, `Comments`, `Modlog`, `Modmail`, `Modqueue`, `Reported`, or
           `Unmoderated`.
+        - **Discord Role ID(s)**: Comma-separated numeric Discord role IDs mentioned in every alert sent to this
+          destination when it is a Discord webhook. Use `everyone` or `here` for `@everyone` or `@here`.
+        - **Slack Mention(s)**: Comma-separated Slack user group IDs (`S…`), user IDs (`U…` or `W…`), or `here`,
+          `channel`, or `everyone`, mentioned in every alert sent to this destination when it is a Slack webhook. Find
+          a user group's ID in its URL in Slack, or a member's ID under "Copy member ID" in their profile.
     - **Legacy Unmoderated Destination**: Backward-compatible fallback for unmoderated items when no enabled numbered
       destination matches the item.
         - **Webhook URL**: Optional legacy webhook used only for that fallback.
+        - **Ping Discord Role**: Mentions the role below in unmoderated relays sent to the legacy webhook when it is a
+          Discord webhook. Discord numbered destinations also use this role for unmoderated relays until their own
+          **Discord Role ID(s)** is filled in.
+        - **Discord Role ID**: Numeric Discord role ID. Enable Developer Mode in Discord, right-click the role, and
+          select "Copy ID".
 - **Global Filters**: Applied to every alert type before any per-bucket filter runs.
     - **Ignore Username(s)/Moderators for All Alerts**: Comma-separated usernames whose content is never forwarded, for
       every alert type (unmoderated, modlog, modmail, modqueue, and reported). `u/` and `/u/` prefixes are accepted and
@@ -48,10 +59,6 @@ The bold names below match the labels displayed in the app settings. Settings ar
           and does not relay comments. Configured delays apply in either mode.
         - **Front Page Time Frame**: Stores the selected top-post time frame for Front Page mode. The current scanner
           does not yet apply this value.
-    - **Discord Role Ping**: Optionally append a Discord role mention to unmoderated relays.
-        - **Ping Discord Role**: Enables the role mention for Discord destinations.
-        - **Discord Role ID**: Numeric Discord role ID. Enable Developer Mode in Discord, right-click the role, and
-          select "Copy ID".
     - **Included Content**: `Content Type` and `Only Approved Authors` are required checks. When username, flair text,
       or flair template ID filters are configured, matching any one of those filters includes the item.
         - **Content Type**: Select `All`, `Posts Only`, or `Comments Only`.
@@ -134,6 +141,30 @@ If you have any feedback or suggestions for Discord Relay, file a bug report or 
 [GitHub page](https://github.com/LilSpazJoekp/discord-relay).
 
 ## Changes
+
+### 3.2.0
+
+- Unmoderated alerts sent to Slack now use a Slack Block Kit layout shaped by the kind of post. Every alert shows the
+  post title linked to the post (the parent post's title for comments), the subreddit, author, creation time and post
+  flair, the post or comment body, and an "Open on Reddit" link.
+    - Link posts show the submitted URL, the embedded site's name and title, and a preview image.
+    - Image posts show the image, and gallery posts show every image, labeled with its position. Devvit does not
+      provide gallery captions.
+    - Video posts link to the video with its duration and show its thumbnail.
+    - Polls list their options and when voting ends.
+    - Crossposts link to the original post.
+    - NSFW and spoiler posts are flagged, and their images are not shown.
+- Slack alerts of every type now render as a Slack attachment, a card with a colored side bar, the same way Discord
+  shows an embed.
+- Added `Discord Role ID(s)` and `Slack Mention(s)` to each of the six webhook destinations. Every alert sent to a
+  destination mentions its Discord roles, or its Slack user groups, users, `@here`, `@channel`, or `@everyone`,
+  depending on the webhook's platform.
+- Moved `Ping Discord Role` and `Discord Role ID` into `Legacy Unmoderated Destination`, keeping existing values. The
+  role always applies to the legacy webhook's unmoderated relays, and each Discord numbered destination keeps using it
+  for unmoderated relays until its own `Discord Role ID(s)` is filled in, so existing role pings keep working after
+  upgrading.
+- The Discord role ping is no longer sent to Slack destinations, where it has no meaning. Discord unmoderated alerts are
+  otherwise unchanged.
 
 ### 3.1.1
 

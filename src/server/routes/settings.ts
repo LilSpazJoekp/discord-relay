@@ -3,6 +3,7 @@ import type {
     SettingsValidationRequest,
 } from "@devvit/web/shared";
 
+import {validateMentions} from "../services/mentions.js";
 import {validateDelay} from "../utils/settings.js";
 
 export const settingsRouter = new Hono();
@@ -26,3 +27,14 @@ settingsRouter.post(
         return c.json({success: true}, 200);
     },
 );
+
+for (const provider of ["discord", "slack"] as const) {
+    settingsRouter.post(
+        `/internal/settings/validate-${provider}-mentions`,
+        async (c) => {
+            const body = await c.req.json<SettingsValidationRequest<string>>();
+            const error = validateMentions(body.value, provider);
+            return c.json(error ? {success: false, error} : {success: true}, 200);
+        },
+    );
+}

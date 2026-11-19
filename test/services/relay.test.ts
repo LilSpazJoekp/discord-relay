@@ -1,6 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 
 vi.mock("@devvit/web/server", () => ({
+    reddit: {getPostById: vi.fn()},
     redis: {hSetNX: vi.fn(), hGet: vi.fn(), hSet: vi.fn(), hDel: vi.fn()},
     scheduler: {runJob: vi.fn()},
     settings: {get: vi.fn()},
@@ -8,7 +9,7 @@ vi.mock("@devvit/web/server", () => ({
 
 vi.mock("../../src/server/services/destinations.js", () => ({getDestinations: vi.fn()}));
 
-import {redis, scheduler, settings} from "@devvit/web/server";
+import {reddit, redis, scheduler, settings} from "@devvit/web/server";
 
 import {getDestinations} from "../../src/server/services/destinations.js";
 import {relayToDestinations, relayWebhook, scheduleRelay} from "../../src/server/services/relay.js";
@@ -38,6 +39,7 @@ beforeEach(() => {
     vi.mocked(settings.get).mockImplementation(async (name) => settingValues[name] as never);
     vi.mocked(redis.hSetNX).mockResolvedValue(1);
     vi.mocked(getDestinations).mockResolvedValue([discord, slack]);
+    vi.mocked(reddit.getPostById).mockResolvedValue(makePost());
     fetchMock.mockImplementation(async () => new Response(null, {status: 204}));
 });
 
@@ -112,6 +114,17 @@ describe("relay fan-out", () => {
         }
     });
 
+    it("adds the receiving destination's mentions to every alert type", async () => {
+        settingValues = {"destination-1-discord-role-ids": "333333", "destination-2-slack-mentions": "U0ABC"};
+
+        await relayToDestinations({
+            bucket: "modmail", destinations: [discord, slack], uniqueId: "message1", message: {embed: {title: "New Modmail"}},
+        });
+
+        expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string).content).toBe("<@&333333>");
+        expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string).text).toBe("<@U0ABC> New Modmail");
+    });
+
     it("sends events without a Reddit item without writing item receipts", async () => {
         await relayToDestinations({
             bucket: "modmail", destinations: [discord], uniqueId: "message1", message: {content: "Modmail"},
@@ -165,14 +178,76 @@ describe("unmoderated relay scheduling", () => {
         expect(scheduler.runJob).not.toHaveBeenCalled();
     });
 
-    it("schedules a comment approval retry with fallback author links, embed flags, and a role ping", async () => {
+    it("sends unmoderated alerts to Slack as Block Kit blocks in place of the Discord text", async () => {
+        await scheduleRelay(makePost({subredditName: "test"}), false);
+
+        expect(fetchMock.mock.calls[1]![0]).toBe(slack.webhookUrl);
+        const slackPayload = JSON.parse(fetchMock.mock.calls[1]![1]!.body as string);
+        expect(slackPayload.text).toBe("New Text Post by u/alice in r/test: A post");
+        expect(slackPayload).not.toHaveProperty("blocks");
+        expect(slackPayload.attachments[0].blocks[0]).toEqual(
+            {type: "header", text: {type: "plain_text", text: "New Text Post"}},
+        );
+        expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).not.toHaveProperty("embeds");
+    });
+
+    it("falls back to the legacy Discord role on a numbered destination until its own roles are set", async () => {
+        settingValues = {"ping-role": true, "ping-role-id": "123456"};
+        vi.mocked(getDestinations).mockResolvedValue([discord]);
+
+        await scheduleRelay(makePost(), false);
+        settingValues["destination-1-discord-role-ids"] = "111111";
+        await scheduleRelay(makePost(), false);
+
+        expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string).content).toBe(
+            "New [post](https://www.reddit.com/r/test/comments/post1/title/) by [u/alice](https://www.reddit.com/user/alice)!\n<@&123456>",
+        );
+        expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string).content).toMatch(/\n<@&111111>$/);
+    });
+
+    it("adds each destination's own mentions in its platform's syntax", async () => {
+        settingValues = {
+            "destination-1-discord-role-ids": "111111, 222222",
+            "destination-1-slack-mentions": "S0IGNORED",
+            "destination-2-slack-mentions": "S0ABC, here",
+        };
+
+        await scheduleRelay(makePost(), false);
+
+        expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string).content).toMatch(/\n<@&111111> <@&222222>$/);
+        const slackPayload = JSON.parse(fetchMock.mock.calls[1]![1]!.body as string);
+        expect(slackPayload.blocks).toEqual([{type: "section", text: {type: "mrkdwn", text: "<!subteam^S0ABC> <!here>"}}]);
+        expect(slackPayload.text).toMatch(/^<!subteam\^S0ABC> <!here> New Text Post/);
+    });
+
+    it("still relays a comment to Slack without a title when its parent post cannot be loaded", async () => {
+        vi.mocked(reddit.getPostById).mockRejectedValue(new Error("Not found"));
+
+        await scheduleRelay(makeComment(), false);
+
+        expect(reddit.getPostById).toHaveBeenCalledWith("t3_post1");
+        const slackPayload = JSON.parse(fetchMock.mock.calls[1]![1]!.body as string);
+        expect(slackPayload.text).toBe("New Comment by u/alice");
+        expect(JSON.stringify(slackPayload.attachments)).not.toContain("*Title*");
+    });
+
+    it("skips the Slack embed and parent post lookup when no Slack destination is configured", async () => {
+        vi.mocked(getDestinations).mockResolvedValue([discord]);
+
+        await scheduleRelay(makeComment(), false);
+
+        expect(reddit.getPostById).not.toHaveBeenCalled();
+        expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).not.toHaveProperty("embeds");
+    });
+
+    it("schedules a comment approval retry with fallback author links, embed flags, and mentions", async () => {
         settingValues = {
             "comment-delay": 3,
             "comment-delay-after-approval": 5,
             "suppress-author-embed": true,
             "suppress-item-embed": true,
-            "ping-role": true,
-            "ping-role-id": "123456",
+            "destination-1-discord-role-ids": "123456",
+            "destination-2-slack-mentions": "here",
         };
         const item = makeComment();
 
@@ -180,6 +255,7 @@ describe("unmoderated relay scheduling", () => {
 
         expect(getDestinations).toHaveBeenCalledWith("unmoderated", "comment");
         expect(scheduler.runJob).toHaveBeenCalledTimes(2);
+        const expectedMentions = new Map([[discord.id, {discord: ["<@&123456>"]}], [slack.id, {slack: ["<!here>"]}]]);
         for (const destination of [discord, slack]) {
             const trackingKey = `relay:unmoderated:${destination.id}:t3_post1/t1_comment1`;
             expect(scheduler.runJob).toHaveBeenCalledWith({
@@ -190,7 +266,9 @@ describe("unmoderated relay scheduling", () => {
                     itemType: "comment",
                     itemId: item.id,
                     message: {
-                        content: "New [comment](<https://www.reddit.com/r/test/comments/post1/title/comment1/>) by [u/alice](<https://www.reddit.com/user/alice>)!\n<@&123456>",
+                        content: "New [comment](<https://www.reddit.com/r/test/comments/post1/title/comment1/>) by [u/alice](<https://www.reddit.com/user/alice>)!",
+                        mentions: expectedMentions.get(destination.id),
+                        slack: expect.objectContaining({text: "New Comment by u/alice: A post"}),
                     },
                     trackingKey,
                     uniqueId: "t3_post1/t1_comment1",

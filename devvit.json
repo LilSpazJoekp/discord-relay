@@ -94,6 +94,18 @@
                     "value": "unmoderated"
                   }
                 ]
+              },
+              "destination-1-discord-role-ids": {
+                "type": "string",
+                "label": "Discord Role ID(s)",
+                "helpText": "Comma-separated numeric Discord role IDs to mention in every alert sent to this destination when it is a Discord webhook. Use everyone or here for @everyone or @here.",
+                "validationEndpoint": "/internal/settings/validate-discord-mentions"
+              },
+              "destination-1-slack-mentions": {
+                "type": "string",
+                "label": "Slack Mention(s)",
+                "helpText": "Comma-separated Slack user group IDs (S…), user IDs (U… or W…), or here, channel, or everyone to mention in every alert sent to this destination when it is a Slack webhook.",
+                "validationEndpoint": "/internal/settings/validate-slack-mentions"
               }
             }
           },
@@ -149,6 +161,18 @@
                     "value": "unmoderated"
                   }
                 ]
+              },
+              "destination-2-discord-role-ids": {
+                "type": "string",
+                "label": "Discord Role ID(s)",
+                "helpText": "Comma-separated numeric Discord role IDs to mention in every alert sent to this destination when it is a Discord webhook. Use everyone or here for @everyone or @here.",
+                "validationEndpoint": "/internal/settings/validate-discord-mentions"
+              },
+              "destination-2-slack-mentions": {
+                "type": "string",
+                "label": "Slack Mention(s)",
+                "helpText": "Comma-separated Slack user group IDs (S…), user IDs (U… or W…), or here, channel, or everyone to mention in every alert sent to this destination when it is a Slack webhook.",
+                "validationEndpoint": "/internal/settings/validate-slack-mentions"
               }
             }
           },
@@ -204,6 +228,18 @@
                     "value": "unmoderated"
                   }
                 ]
+              },
+              "destination-3-discord-role-ids": {
+                "type": "string",
+                "label": "Discord Role ID(s)",
+                "helpText": "Comma-separated numeric Discord role IDs to mention in every alert sent to this destination when it is a Discord webhook. Use everyone or here for @everyone or @here.",
+                "validationEndpoint": "/internal/settings/validate-discord-mentions"
+              },
+              "destination-3-slack-mentions": {
+                "type": "string",
+                "label": "Slack Mention(s)",
+                "helpText": "Comma-separated Slack user group IDs (S…), user IDs (U… or W…), or here, channel, or everyone to mention in every alert sent to this destination when it is a Slack webhook.",
+                "validationEndpoint": "/internal/settings/validate-slack-mentions"
               }
             }
           },
@@ -259,6 +295,18 @@
                     "value": "unmoderated"
                   }
                 ]
+              },
+              "destination-4-discord-role-ids": {
+                "type": "string",
+                "label": "Discord Role ID(s)",
+                "helpText": "Comma-separated numeric Discord role IDs to mention in every alert sent to this destination when it is a Discord webhook. Use everyone or here for @everyone or @here.",
+                "validationEndpoint": "/internal/settings/validate-discord-mentions"
+              },
+              "destination-4-slack-mentions": {
+                "type": "string",
+                "label": "Slack Mention(s)",
+                "helpText": "Comma-separated Slack user group IDs (S…), user IDs (U… or W…), or here, channel, or everyone to mention in every alert sent to this destination when it is a Slack webhook.",
+                "validationEndpoint": "/internal/settings/validate-slack-mentions"
               }
             }
           },
@@ -314,6 +362,18 @@
                     "value": "unmoderated"
                   }
                 ]
+              },
+              "destination-5-discord-role-ids": {
+                "type": "string",
+                "label": "Discord Role ID(s)",
+                "helpText": "Comma-separated numeric Discord role IDs to mention in every alert sent to this destination when it is a Discord webhook. Use everyone or here for @everyone or @here.",
+                "validationEndpoint": "/internal/settings/validate-discord-mentions"
+              },
+              "destination-5-slack-mentions": {
+                "type": "string",
+                "label": "Slack Mention(s)",
+                "helpText": "Comma-separated Slack user group IDs (S…), user IDs (U… or W…), or here, channel, or everyone to mention in every alert sent to this destination when it is a Slack webhook.",
+                "validationEndpoint": "/internal/settings/validate-slack-mentions"
               }
             }
           },
@@ -369,6 +429,18 @@
                     "value": "unmoderated"
                   }
                 ]
+              },
+              "destination-6-discord-role-ids": {
+                "type": "string",
+                "label": "Discord Role ID(s)",
+                "helpText": "Comma-separated numeric Discord role IDs to mention in every alert sent to this destination when it is a Discord webhook. Use everyone or here for @everyone or @here.",
+                "validationEndpoint": "/internal/settings/validate-discord-mentions"
+              },
+              "destination-6-slack-mentions": {
+                "type": "string",
+                "label": "Slack Mention(s)",
+                "helpText": "Comma-separated Slack user group IDs (S…), user IDs (U… or W…), or here, channel, or everyone to mention in every alert sent to this destination when it is a Slack webhook.",
+                "validationEndpoint": "/internal/settings/validate-slack-mentions"
               }
             }
           },
@@ -382,6 +454,16 @@
                 "label": "Webhook URL",
                 "helpText": "Optional backward-compatible fallback for unmoderated forwarding when no destination is configured.",
                 "validationEndpoint": "/internal/settings/validate-webhook-url"
+              },
+              "ping-role": {
+                "type": "boolean",
+                "label": "Ping Discord Role",
+                "defaultValue": false,
+                "helpText": "Mentions the role below in unmoderated relays sent to the legacy webhook when it is a Discord webhook. Discord numbered destinations also use this role for unmoderated relays until their own Discord Role ID(s) is set."
+              },
+              "ping-role-id": {
+                "type": "string",
+                "label": "Discord Role ID"
               }
             }
           }
@@ -461,22 +543,6 @@
                     "value": "all"
                   }
                 ]
-              }
-            }
-          },
-          "discord-role-ping": {
-            "type": "group",
-            "label": "Discord Role Ping",
-            "helpText": "Applies only to Discord destinations; enter the numeric role ID to mention it in unmoderated relays.",
-            "fields": {
-              "ping-role": {
-                "type": "boolean",
-                "label": "Ping Discord Role",
-                "defaultValue": false
-              },
-              "ping-role-id": {
-                "type": "string",
-                "label": "Discord Role ID"
               }
             }
           },
